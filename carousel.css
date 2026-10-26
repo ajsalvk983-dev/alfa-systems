@@ -1,0 +1,322 @@
+
+.alfa-carousel {
+  width: calc(100% - 30px);
+  max-width: 1100px;
+  margin: 0 auto 30px;
+  border-radius: 28px;
+  overflow: hidden;
+  background: #0b1437;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 22px 50px rgba(0, 0, 0, 0.45);
+}
+
+/* each slide sets its own palette */
+.slide-1 { --bg1: #071433; --bg2: #10306b; --glow: rgba(120, 160, 255, 0.38); --lens: #eef2fb; --accent: #ff6b57; --accent-ink: #fff;    --ink: #f3f6ff; }
+.slide-2 { --bg1: #2e1f15; --bg2: #6b4a2f; --glow: rgba(255, 205, 150, 0.30); --lens: #f4e9dc; --accent: #ffc98b; --accent-ink: #3b2a1e; --ink: #fbefdc; }
+.slide-3 { --bg1: #08311f; --bg2: #14573f; --glow: rgba(140, 235, 190, 0.28); --lens: #f2f7f4; --accent: #ffd9b8; --accent-ink: #0b3d2e; --ink: #eefaf3; }
+.slide-4 { --bg1: #3a0f22; --bg2: #7a2347; --glow: rgba(255, 175, 205, 0.30); --lens: #f7efe6; --accent: #f2c46d; --accent-ink: #3a0f22; --ink: #fff0e6; }
+
+.alfa-slide {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  align-items: center;
+  min-height: 470px;
+  padding: 56px 40px 96px 64px;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 76% 45%, var(--glow) 0%, transparent 55%),
+    linear-gradient(120deg, var(--bg1), var(--bg2));
+}
+
+/* ----- text ----- */
+.slide-title {
+  max-width: 11em;
+  margin: 0 0 16px;
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 600;
+  font-size: clamp(2.1rem, 4.4vw, 3.5rem);
+  line-height: 1.04;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.slide-sub {
+  max-width: 42ch;
+  margin: 0 0 28px;
+  font-size: 1.05rem;
+  line-height: 1.55;
+  color: var(--ink);
+  opacity: 0.85;
+}
+
+.slide-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.slide-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 24px;
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--bg1);
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.slide-btn:hover {
+  color: var(--bg1);
+  text-decoration: none;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.slide-btn-ghost {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.4);
+  color: var(--ink);
+}
+
+.slide-btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--ink);
+  box-shadow: none;
+}
+
+.slide-btn:focus-visible,
+.alfa-carousel .carousel-control-prev:focus-visible,
+.alfa-carousel .carousel-control-next:focus-visible {
+  outline: 3px solid #ffd54f;
+  outline-offset: 2px;
+}
+
+/* ----- product: round "lens" with rings, a spec bubble and two callouts ----- */
+.slide-media {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+}
+
+.slide-media::before,
+.slide-media::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.slide-media::before { width: 400px; height: 400px; }
+.slide-media::after  { width: 470px; height: 470px; border-color: rgba(255, 255, 255, 0.1); }
+
+.lens {
+  position: relative;
+  z-index: 1;
+  isolation: isolate;
+  width: 340px;
+  height: 340px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--lens);
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.35), 0 0 0 10px rgba(255, 255, 255, 0.08);
+}
+
+/* multiply: the photo's white background takes the lens colour */
+.alfa-carousel .slide-img {
+  position: absolute;
+  inset: 7%;
+  width: 86%;
+  height: 86%;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+}
+
+.spec-bubble {
+  position: absolute;
+  top: 5%;
+  right: 3%;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 104px;
+  height: 104px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-ink);
+  text-align: center;
+  transform: rotate(-8deg);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
+}
+
+.spec-bubble b {
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 600;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.spec-bubble span {
+  max-width: 72px;
+  margin-top: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.callout {
+  position: absolute;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  background: var(--bg1);   /* solid, so the text stays readable where it overlaps the light lens */
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  color: var(--ink);
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.callout::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.callout-1 { left: 0; top: 26%; }
+.callout-2 { right: 2%; bottom: 13%; }
+
+/* ----- indicators and arrows ----- */
+.alfa-carousel .carousel-indicators {
+  justify-content: flex-start;
+  margin: 0 0 28px 64px;
+}
+
+.alfa-carousel .carousel-indicators li {
+  width: 28px;
+  height: 4px;
+  margin: 0 8px 0 0;
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.32);
+  opacity: 1;
+  transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.alfa-carousel .carousel-indicators li.active {
+  width: 56px;
+  background-color: #fff;
+}
+
+.alfa-carousel .carousel-control-prev,
+.alfa-carousel .carousel-control-next {
+  top: auto;
+  bottom: 24px;
+  left: auto;
+  width: 46px;
+  height: 46px;
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-size: 14px;
+  opacity: 1;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.alfa-carousel .carousel-control-prev { right: 82px; }
+.alfa-carousel .carousel-control-next { right: 26px; }
+
+.alfa-carousel .carousel-control-prev:hover,
+.alfa-carousel .carousel-control-next:hover {
+  background: #fff;
+  color: #0b1437;
+}
+
+/* ----- mobile ----- */
+@media (max-width: 768px) {
+  .alfa-slide {
+    grid-template-columns: 1fr;
+    align-content: center;
+    min-height: 710px;
+    padding: 26px 22px 96px;
+  }
+
+  .slide-media { order: -1; height: 290px; }
+  .slide-media::before { width: 270px; height: 270px; }
+  .slide-media::after  { width: 316px; height: 316px; }
+  .lens { width: 230px; height: 230px; }
+
+  .spec-bubble { width: 84px; height: 84px; top: 2%; right: 4%; }
+  .spec-bubble b { font-size: 1.15rem; }
+  .spec-bubble span { font-size: 0.64rem; max-width: 60px; }
+  .callout { display: none; }
+
+  .slide-title { font-size: 2rem; }
+  .slide-sub { font-size: 0.95rem; margin-bottom: 20px; }
+
+  .alfa-carousel .carousel-indicators { margin: 0 0 38px 22px; }
+  .alfa-carousel .carousel-control-prev { right: 72px; bottom: 20px; }
+  .alfa-carousel .carousel-control-next { right: 20px; bottom: 20px; }
+}
+
+
+/* ===== Colour zone behind navbar + title + carousel; it follows the active slide ===== */
+.hero-zone {
+  position: relative;
+  margin-bottom: 26px;
+}
+
+.hero-zone > :not(.hero-bg) {
+  position: relative;
+  z-index: 1;
+}
+
+/* fixed + behind everything: covers the whole page and hides the old photo background */
+.hero-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.7s ease;
+}
+
+/* a little darker than each slide, so the card still stands out */
+.hero-bg-1 { background: linear-gradient(180deg, #040a1c, #0b2152); }
+.hero-bg-2 { background: linear-gradient(180deg, #1d130c, #4a3220); }
+.hero-bg-3 { background: linear-gradient(180deg, #052315, #0d4030); }
+.hero-bg-4 { background: linear-gradient(180deg, #26091a, #5a1a36); }
+
+.hero-zone[data-slide="1"] .hero-bg-1,
+.hero-zone[data-slide="2"] .hero-bg-2,
+.hero-zone[data-slide="3"] .hero-bg-3,
+.hero-zone[data-slide="4"] .hero-bg-4 { opacity: 1; }
+
+/* navbar and title were dark-on-light, so flip them to light here */
+.hero-zone .menu-btn,
+.hero-zone .cart-link,
+.hero-zone .head-home-alfa { color: #fff; }
+
+.hero-zone .menu-btn:hover,
+.hero-zone .cart-link:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+
+/* headings that sit directly on the page background (they were dark-on-light) */
+.strip-title,
+.no-results { color: #fff; }

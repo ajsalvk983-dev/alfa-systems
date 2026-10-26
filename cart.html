@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Cart | ALFA SYSTEMS</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous" />
+    <script src="https://kit.fontawesome.com/ccc999b0a6.js" crossorigin="anonymous"></script>
+
+    <link rel="stylesheet" href="alfa.css" />
+    <link rel="stylesheet" href="pages.css" />
+    <link rel="stylesheet" href="responsive.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manjari:wght@400;700&family=Poppins:wght@800&display=swap" rel="stylesheet" />
+  </head>
+
+  <body>
+    <div class="main-content">
+
+      <nav class="navbar navbar-green">
+        <div class="menu-btn" id="menuBtn"><i class="fa-solid fa-bars"></i></div>
+        <a class="navbar-brand" href="alfa.html">
+          <img src="https://res.cloudinary.com/ddng8ksv6/image/upload/v1791894089/image-removebg-preview_mbsics.png" width="30" height="30" alt="" />
+        </a>
+        <span class="nav-title">My Cart</span>
+        <a href="cart.html" class="cart-link" aria-label="Cart">
+          <i class="fa-solid fa-cart-shopping"></i>
+          <span class="cart-count" id="cartCount" hidden>0</span>
+        </a>
+      </nav>
+
+      <div class="page-wrap">
+        <h2 class="page-heading">My Cart</h2>
+        <div id="cartList"></div>
+        <div id="cartSummary"></div>
+      </div>
+
+    </div>
+
+    <div class="overlay" id="overlay"></div>
+    <aside class="sidebar" id="sidebar">
+      <div class="logo">
+        <img src="https://res.cloudinary.com/ddng8ksv6/image/upload/v1791894089/image-removebg-preview_mbsics.png" alt="Logo" class="img-fluid" />
+      </div>
+      <nav>
+        <a href="alfa.html">Home</a>
+        <a href="alfa.html#products">My Products</a>
+        <a href="cart.html">My Cart</a>
+        <a href="orders.html">My Orders</a>
+      </nav>
+    </aside>
+
+    <script src="api.js"></script>
+    <script src="alfa.js"></script>
+  </body>
+</html>

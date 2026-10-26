@@ -1,0 +1,80 @@
+/* Cross-device fixes. Link AFTER alfa.css and pages.css on every page. */
+
+/* stop iPhones from inflating text when the phone is turned sideways */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* 16px stops iOS Safari from zooming the whole page when the search box is tapped */
+.yt-search .search {
+  font-size: 16px;
+}
+
+/* finger-sized tap targets (about 44px) */
+.menu-btn,
+.cart-link,
+.qty-box button,
+.remove-btn {
+  width: 44px;
+  height: 44px;
+}
+
+.chip {
+  min-height: 44px;
+}
+
+/* 100vh is taller than the visible screen on phones (address bar); dvh is the real visible height.
+   Browsers that do not know dvh keep the old vh rules. */
+@supports (height: 100dvh) {
+  .background-text-col,
+  .page-wrap {
+    min-height: 100dvh;
+  }
+
+  .sidebar {
+    height: 100dvh;
+  }
+}
+
+/* a long word or product name can never push the page wider than the screen */
+h1, h2, h3, h4, h5, h6,
+.cart-name,
+.order-items span {
+  overflow-wrap: anywhere;
+}
+
+.navbar { flex-wrap: wrap; row-gap: 8px; }
+.nav-links { display: flex; align-items: center; gap: 8px; }
+
+.nav-links a,
+.cart-link {
+  background: rgba(11, 20, 55, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+}
+.nav-links a {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 44px; padding: 0 16px; border-radius: 999px;
+  font-size: 0.95rem; white-space: nowrap;
+}
+.nav-links a[aria-current="page"],
+.cart-link[aria-current="page"] { background: #fff; color: #0b1437; }
+
+.cart-link { margin-left: auto; }
+.yt-search ~ .cart-link { margin-left: 0; }
+.cart-text { display: none; }
+
+@media (min-width: 769px) {
+  .cart-link { width: auto; padding: 0 16px; gap: 8px; border-radius: 999px; font-size: 0.95rem; }
+  .cart-text { display: inline; }
+}
+@media (max-width: 768px) {
+  .navbar-brand { order: 1; }
+  .yt-search { order: 2; }
+  .cart-link { order: 3; }
+  .nav-links { order: 4; flex: 0 0 100%; overflow-x: auto; }
+  .nav-links a { flex: 1 1 auto; padding: 0 12px; font-size: 0.88rem; }
+}
