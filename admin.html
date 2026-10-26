@@ -4,61 +4,143 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex" />
-    <title>Admin | ALFA SYSTEMS</title>
-    <style>
-      * { box-sizing: border-box; }
-      [hidden] { display: none !important; }
-      body {
-        margin: 0;
-        padding: 16px;
-        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-        background: #f3f5f8;
-        color: #161111;
-      }
-      main { max-width: 760px; margin: 0 auto; }
-      h1 { font-size: 1.5rem; margin: 8px 0 16px; }
-      h2 { font-size: 1.15rem; margin: 28px 0 12px; }
-      h3 { font-size: 1rem; margin: 0 0 10px; }
-      .card, .row { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); }
-      label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; }
-      input { width: 100%; min-height: 44px; padding: 8px 12px; border: 1px solid #c9ced6; border-radius: 8px; font: inherit; font-size: 16px; }
-      button { min-height: 44px; padding: 0 20px; border: 0; border-radius: 999px; background: #040676; color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
-      button:disabled { opacity: 0.6; cursor: default; }
-      button.ghost { background: transparent; color: #040676; border: 1.5px solid #040676; }
-      input:focus-visible, button:focus-visible { outline: 3px solid #ffb300; outline-offset: 2px; }
-      .msg { min-height: 1.4em; margin: 0 0 12px; color: #1e7e34; font-weight: 600; }
-      .msg.bad { color: #c62828; }
-      .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 12px; }
-      .field span { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; }
-      .actions { display: flex; align-items: center; gap: 12px; }
-      .status { font-size: 0.9rem; color: #555; }
-      .when { margin: 0 0 8px; color: #666; font-size: 0.9rem; }
-      ul { margin: 0; padding-left: 20px; }
-      .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-    </style>
+    <meta name="theme-color" content="#f5f7fb" />
+    <title>Product admin | ALFA SYSTEMS</title>
+    <link rel="stylesheet" href="admin.css" />
   </head>
   <body>
-    <main>
-      <div class="top">
-        <h1>ALFA SYSTEMS admin</h1>
-        <button id="logoutBtn" class="ghost" type="button" hidden>Log out</button>
-      </div>
-      <p id="msg" class="msg" role="status"></p>
-
-      <section id="loginBox" class="card">
+    <div id="loginView" class="login-view">
+      <form id="loginForm" class="login-card">
+        <a class="brand-mark" href="alfa.html" aria-label="ALFA SYSTEMS home">A</a>
+        <p class="eyebrow">ALFA SYSTEMS</p>
+        <h1>Welcome back</h1>
+        <p class="muted">Sign in to manage your product catalogue.</p>
         <label for="pw">Admin password</label>
-        <input id="pw" type="password" autocomplete="current-password" />
-        <p></p>
-        <button id="loginBtn" type="button">Log in</button>
-      </section>
+        <input id="pw" type="password" autocomplete="current-password" required />
+        <button id="loginBtn" class="button button-primary button-wide" type="submit">Log in</button>
+        <p id="loginMsg" class="message" role="status" aria-live="polite"></p>
+      </form>
+    </div>
 
-      <section id="panel" hidden>
-        <h2>Prices</h2>
-        <div id="products"></div>
-        <h2>Recent orders</h2>
-        <div id="orders"></div>
+    <div id="appView" class="app-shell" hidden>
+      <aside class="sidebar">
+        <a class="sidebar-brand" href="alfa.html"><span class="brand-mark">A</span><span>ALFA <b>SYSTEMS</b><small>STORE ADMIN</small></span></a>
+        <p class="nav-label">WORKSPACE</p>
+        <nav aria-label="Admin navigation">
+          <a class="nav-link active" href="#catalogue" data-view="catalogue"><span aria-hidden="true">▦</span> Products</a>
+          <a class="nav-link" href="#orders" data-view="orders"><span aria-hidden="true">▤</span> Orders</a>
+        </nav>
+        <div class="sidebar-bottom">
+          <span class="connection-dot"></span>
+          <span>Connected to store API</span>
+          <button id="logoutBtn" class="logout-button" type="button">Log out</button>
+        </div>
+      </aside>
+
+      <main class="main-area">
+        <header class="topbar">
+          <div><p class="eyebrow">STORE MANAGEMENT</p><h1 id="pageTitle">Products</h1></div>
+          <div class="topbar-actions">
+            <a class="store-link" href="alfa.html" target="_blank" rel="noopener">View store <span aria-hidden="true">↗</span></a>
+            <button id="addProductTop" class="button button-primary" type="button">＋ Add product</button>
+          </div>
+        </header>
+        <div id="globalMsg" class="global-message" role="status" aria-live="polite"></div>
+
+        <section id="catalogueView" class="page-view">
+          <div class="welcome-row">
+            <div><h2>Your catalogue</h2><p class="muted">Manage product details, pricing and images.</p></div>
+          </div>
+          <div class="stats-grid">
+            <article class="stat-card"><span class="stat-icon">▦</span><div><p>Total products</p><strong id="totalProducts">—</strong></div></article>
+            <article class="stat-card"><span class="stat-icon stat-icon-green">₹</span><div><p>Products with pricing</p><strong id="pricedProducts">—</strong></div></article>
+            <article class="stat-card"><span class="stat-icon stat-icon-orange">◷</span><div><p>Last refreshed</p><strong id="lastRefreshed">—</strong></div></article>
+          </div>
+          <section class="panel">
+            <div class="panel-heading">
+              <div><h2>All products</h2><p class="muted">Search or edit your store catalogue.</p></div>
+              <label class="search-box"><span aria-hidden="true">⌕</span><input id="searchInput" type="search" placeholder="Search products..." autocomplete="off" /></label>
+            </div>
+            <div class="table-scroll">
+              <table class="products-table">
+                <thead><tr><th>PRODUCT</th><th>CATEGORY</th><th>PRICE</th><th>IMAGES</th><th>ACTIONS</th></tr></thead>
+                <tbody id="products"></tbody>
+              </table>
+            </div>
+            <div id="emptyProducts" class="empty-state" hidden><span>▦</span><h3>No products found</h3><p>Try another search or add a new product.</p><button class="button button-primary" type="button" data-add-product>Add product</button></div>
+          </section>
+        </section>
+
+        <section id="ordersView" class="page-view" hidden>
+          <section class="panel">
+            <div class="panel-heading"><div><h2>Recent orders</h2><p class="muted">Orders received from your store.</p></div></div>
+            <div id="orders" class="orders-list"><p class="muted">Loading orders...</p></div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <div id="editorModal" class="modal-backdrop" hidden>
+      <section class="editor-modal" role="dialog" aria-modal="true" aria-labelledby="editorTitle">
+        <header class="editor-header">
+          <div><p class="eyebrow">PRODUCT CATALOGUE</p><h2 id="editorTitle">Add product</h2></div>
+          <button id="closeEditor" class="icon-button" type="button" aria-label="Close editor">×</button>
+        </header>
+        <form id="productForm">
+          <input id="productId" type="hidden" />
+          <div class="editor-layout">
+            <div class="editor-fields">
+              <section class="form-section">
+                <h3>Basic information</h3>
+                <div class="form-grid">
+                  <label class="form-field span-2">Product name <input id="productName" name="name" maxlength="160" required /></label>
+                  <label class="form-field">Brand <input id="productBrand" name="brand" maxlength="100" /></label>
+                  <label class="form-field">Category
+                    <select id="productCategory" name="category">
+                      <option value="">Select category</option><option value="platform">Platform scales</option><option value="counter">Counter scales</option><option value="label">Label printing</option><option value="portable">Portable &amp; precision</option><option value="sealing">Sealing machines</option>
+                    </select>
+                  </label>
+                  <label class="form-field span-2">Description <textarea id="productDescription" name="description" rows="4" maxlength="2000"></textarea></label>
+                  <label class="form-field">Price (₹) <input id="productPrice" name="price" type="text" inputmode="decimal" placeholder="e.g. 12500 or From ₹900" maxlength="80" /></label>
+                  <label class="form-field">Old price (₹) <input id="productOldPrice" name="oldPrice" type="number" min="0" step="0.01" /></label>
+                  <label class="form-field span-2">Price note <input id="productPriceNote" name="priceNote" maxlength="120" placeholder="Inclusive of GST" /></label>
+                  <label class="form-field">Capacity <input id="productCapacity" name="capacity" maxlength="100" placeholder="e.g. 30 kg" /></label>
+                  <label class="form-field">Accuracy <input id="productAccuracy" name="accuracy" maxlength="100" placeholder="e.g. 1 g" /></label>
+                  <label class="form-field span-2">Best for <input id="productUsedFor" name="usedFor" maxlength="240" placeholder="Shops, bakeries, counters" /></label>
+                </div>
+              </section>
+              <section class="form-section">
+                <div class="section-title-row"><div><h3>Features</h3><p class="muted">Add the product's key benefits.</p></div><button id="addFeature" class="button button-subtle" type="button">＋ Add feature</button></div>
+                <div id="featuresList" class="dynamic-list"></div>
+              </section>
+              <section class="form-section">
+                <div class="section-title-row"><div><h3>Specifications</h3><p class="muted">Add custom name and value pairs.</p></div><button id="addSpec" class="button button-subtle" type="button">＋ Add specification</button></div>
+                <div id="specsList" class="dynamic-list"></div>
+              </section>
+              <section class="form-section">
+                <div class="section-title-row"><div><h3>Product images</h3><p class="muted">Upload multiple images or add image URLs. Select a main image.</p></div></div>
+                <label class="upload-zone" for="imageUpload"><span class="upload-icon">↑</span><b>Choose images to upload</b><span>Cloudinary unsigned upload · JPG, PNG, WEBP</span><input id="imageUpload" type="file" accept="image/*" multiple /></label>
+                <div class="cloudinary-config">
+                  <label class="form-field">Cloudinary cloud name <input id="cloudName" autocomplete="off" placeholder="your-cloud-name" /></label>
+                  <label class="form-field">Unsigned upload preset <input id="uploadPreset" autocomplete="off" placeholder="your-upload-preset" /></label>
+                  <p class="help-text span-2">Saved in this browser only. Use an unsigned preset; never enter your Cloudinary API secret here.</p>
+                </div>
+                <div class="manual-image-row"><label class="form-field">Image URL <input id="imageUrl" type="url" placeholder="https://..." /></label><button id="addImageUrl" class="button button-subtle" type="button">Add URL</button></div>
+                <div id="imageList" class="image-list"></div>
+              </section>
+            </div>
+            <aside class="preview-column">
+              <div class="preview-card"><div class="preview-top"><h3>Live preview</h3><span class="preview-tag">STORE CARD</span></div>
+                <div id="previewImageWrap" class="preview-image-wrap"><span class="preview-placeholder">Product image preview</span><img id="previewImage" alt="" hidden /></div>
+                <div class="preview-content"><span id="previewCategory" class="preview-category">PRODUCT</span><h3 id="previewName">Product name</h3><p id="previewDescription">Your product description will appear here.</p><div class="preview-price"><strong id="previewPrice">Price on request</strong><s id="previewOldPrice" hidden></s></div></div>
+              </div>
+              <p class="preview-hint">Preview updates as you edit.</p>
+            </aside>
+          </div>
+          <footer class="editor-footer"><span id="editorStatus" class="status-text" role="status"></span><button id="cancelEditor" class="button button-secondary" type="button">Cancel</button><button id="saveProduct" class="button button-primary" type="submit">Save product</button></footer>
+        </form>
       </section>
-    </main>
+    </div>
 
     <script src="api.js"></script>
     <script src="admin.js"></script>
