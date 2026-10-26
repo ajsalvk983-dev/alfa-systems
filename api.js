@@ -1,6 +1,7 @@
 const LIVE_API = "https://alfa-backend-mtwa.onrender.com";
-const IS_LOCAL = /^(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+)$/.test(window.location.hostname);
-const API_URL = IS_LOCAL ? "http://" + window.location.hostname + ":3000" : LIVE_API;
+const IS_LOCAL_HOST = /^(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+)$/.test(window.location.hostname);
+const USE_LOCAL_API = IS_LOCAL_HOST && new URLSearchParams(window.location.search).get("api") === "local";
+const API_URL = USE_LOCAL_API ? "http://" + window.location.hostname + ":3000" : LIVE_API;
 
 
 async function loadProducts() {
