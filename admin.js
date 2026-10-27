@@ -1,7 +1,7 @@
 // Admin page uses the store API; the API validates the password for admin routes.
 const PW_KEY = "alfaAdminPw";
 const CLOUD_NAME_KEY = "ddng8ksv6";
-const UPLOAD_PRESET_KEY = "alfa-products";
+const UPLOAD_PRESET_KEY = "alfa_products";
 let adminPw = sessionStorage.getItem(PW_KEY) || "";
 let productList = [];
 let editorImages = [];
