@@ -53,6 +53,30 @@ async function adminFetch(path, options) {
   return res;
 }
 
+async function apiErrorMessage(res, action) {
+  const body = await res.text();
+  let detail = "";
+  let parsed = false;
+  let data;
+  try {
+    data = JSON.parse(body);
+    parsed = true;
+  } catch (err) {
+    data = null;
+  }
+  if (parsed && data && typeof data === "object") {
+    if (typeof data.error === "string") detail = data.error;
+    else if (data.error && typeof data.error.message === "string") detail = data.error.message;
+    else if (typeof data.message === "string") detail = data.message;
+  } else if (!parsed && body && !/<(?:!doctype|html|head|body|pre)\b/i.test(body)) {
+    detail = body.trim().slice(0, 240);
+  }
+  const status = " (HTTP " + res.status + ").";
+  return detail
+    ? "Could not " + action + ": " + detail + status
+    : "Could not " + action + status + " Check the store API and its server logs.";
+}
+
 async function login(event) {
   if (event) event.preventDefault();
   const typed = $("pw").value;
@@ -408,10 +432,7 @@ async function saveProduct(event) {
       method: editingProduct ? "PUT" : "POST",
       body: JSON.stringify(product),
     });
-    if (!res.ok) {
-      const detail = await res.text();
-      throw new Error(detail || "The server could not save this product (" + res.status + ").");
-    }
+    if (!res.ok) throw new Error(await apiErrorMessage(res, "save this product"));
     closeEditor();
     if (await loadProducts()) setGlobalMessage(editingProduct ? "Product updated." : "Product added.");
   } catch (err) {
@@ -426,10 +447,7 @@ async function deleteProduct(product) {
   if (!window.confirm('Delete "' + (product.name || "this product") + '"? This cannot be undone.')) return;
   try {
     const res = await adminFetch("/api/admin/products/" + encodeURIComponent(product.id), { method: "DELETE" });
-    if (!res.ok) {
-      const detail = await res.text();
-      throw new Error(detail || "The server could not delete this product (" + res.status + ").");
-    }
+    if (!res.ok) throw new Error(await apiErrorMessage(res, "delete this product"));
     if (await loadProducts()) setGlobalMessage("Product deleted.");
   } catch (err) {
     setGlobalMessage(err.message || "Could not delete product.", true);
