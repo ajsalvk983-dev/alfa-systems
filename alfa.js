@@ -23,8 +23,9 @@ function esc(text) {
 // price can be a number (1200 -> ₹1,200, 1249.5 -> ₹1,249 with small .50) or text ("From ₹900", "₹1,200 + GST")
 function formatPrice(v) {
   if (typeof v !== "number") return esc(String(v));
-  const rupees = Math.floor(v);
-  const paise = Math.round((v - rupees) * 100);
+  const paiseTotal = Math.round(v * 100);
+  const rupees = Math.floor(paiseTotal / 100);
+  const paise = paiseTotal % 100;
   let html = "\u20B9" + rupees.toLocaleString("en-IN");
   if (paise) html += "<sup>." + String(paise).padStart(2, "0") + "</sup>";
   return html;
@@ -80,10 +81,62 @@ function updateBadge() {
   const badge = document.getElementById("cartCount");
   if (!badge) return;
   const count = load(CART_KEY).reduce(function (sum, item) {
-    return sum + item.qty;
+    return sum + getSafeQuantity(item && item.qty);
   }, 0);
   badge.textContent = count;
   badge.hidden = count === 0;
+}
+
+function getNumericPrice(value) {
+  if (typeof value !== "number" && typeof value !== "string") return null;
+  if (typeof value === "string" && value.trim() === "") return null;
+  const price = Number(value);
+  return Number.isFinite(price) && price >= 0 ? price : null;
+}
+
+function getSafeQuantity(value) {
+  const quantity = Number(value);
+  return Number.isFinite(quantity) ? Math.min(Math.max(Math.floor(quantity), 1), 99) : 1;
+}
+
+function cartItemFromProduct(product, quantity) {
+  return {
+    id: product.id || "",
+    name: product.name || "Product",
+    image: product.image || "",
+    price: getNumericPrice(product.price),
+    oldPrice: getNumericPrice(product.oldPrice),
+    brand: product.brand || "",
+    category: product.category || "",
+    qty: getSafeQuantity(quantity)
+  };
+}
+
+function findCatalogueProduct(item) {
+  if (typeof products === "undefined" || !Array.isArray(products)) return null;
+  return products.find(function (product) {
+    return item.id && String(product.id) === String(item.id);
+  }) || products.find(function (product) {
+    return item.name && String(product.name).toLowerCase() === String(item.name).toLowerCase();
+  }) || null;
+}
+
+function mergeCatalogueData(item, product) {
+  if (!product) return item;
+  if (!item.id) item.id = product.id || "";
+  if (!item.name) item.name = product.name || "Product";
+  if (!item.image) item.image = product.image || "";
+  if (!item.brand) item.brand = product.brand || "";
+  if (!item.category) item.category = product.category || "";
+
+  const price = getNumericPrice(item.price);
+  const productPrice = getNumericPrice(product.price);
+  item.price = price === null ? productPrice : price;
+
+  const oldPrice = getNumericPrice(item.oldPrice);
+  const productOldPrice = getNumericPrice(product.oldPrice);
+  item.oldPrice = oldPrice === null ? productOldPrice : oldPrice;
+  return item;
 }
 
 function orderNow(btn, e) {
@@ -100,18 +153,23 @@ function addToCart(btn, e) {
   const card = btn.closest(".alfa-card-home");
   const name = card.querySelector(".card-title").textContent.trim();
   const id = card.dataset.id;
-  const image = card.querySelector(".card-img-top").src;
+  const product = findCatalogueProduct({ id: id, name: name }) || {
+    id: id,
+    name: name,
+    image: card.querySelector(".card-img-top").src
+  };
 
   const cart = load(CART_KEY);
   const existing = cart.find(function (item) {
-    return item.name === name;
+  return item && ((id && String(item.id) === String(id)) || item.name === name);
   });
 
   if (existing) {
-    existing.id=id;
-    existing.qty = Math.min(existing.qty + 1, 99);
+    mergeCatalogueData(existing, product);
+    existing.qty = Math.min(getSafeQuantity(existing.qty) + 1, 99);
   } else {
-cart.push({ id: id, name: name, image: image, qty: 1 });  }
+    cart.push(cartItemFromProduct(product, 1));
+  }
 
   save(CART_KEY, cart);
   updateBadge();
@@ -180,47 +238,67 @@ function renderCart() {
   const summary = document.getElementById("cartSummary");
   if (!list) return;
 
-  const cart = load(CART_KEY);
+  const count = document.getElementById("cartItemsCount");
+  const layout = list.closest(".cart-layout");
+  const cart = load(CART_KEY).filter(function (item) {
+    return item && typeof item === "object";
+  });
+  cart.forEach(function (item) {
+    mergeCatalogueData(item, findCatalogueProduct(item));
+    item.price = getNumericPrice(item.price);
+    item.oldPrice = getNumericPrice(item.oldPrice);
+    item.qty = getSafeQuantity(item.qty);
+  });
+  save(CART_KEY, cart);
 
   if (cart.length === 0) {
+    if (count) count.textContent = "";
+    if (layout) layout.classList.add("cart-empty");
+    if (summary) summary.hidden = true;
     list.innerHTML =
       '<div class="empty-state">' +
       '<i class="fa-solid fa-cart-shopping"></i>' +
       "<h2>Your cart is empty</h2>" +
-      "<p>Explore our weighing and business equipment to get started.</p>" +
+      "<p>You haven't added any products yet. Explore our weighing and business equipment to get started.</p>" +
       '<a href="alfa.html#products" class="btn btn-primary">Browse products</a>' +
       "</div>";
     summary.innerHTML = "";
     return;
   }
+  if (layout) layout.classList.remove("cart-empty");
+  if (summary) summary.hidden = false;
 
   const totalQuantity = cart.reduce(function (sum, item) {
-    const quantity = Number(item && item.qty);
-    return sum + (Number.isFinite(quantity) ? Math.min(Math.max(Math.floor(quantity), 1), 99) : 1);
+    return sum + item.qty;
   }, 0);
-  const hasCompletePrices = cart.every(function (item) {
-    return typeof item.price === "number" && Number.isFinite(item.price) && item.price >= 0;
+  const itemsWithPrice = cart.filter(function (item) {
+    return getNumericPrice(item.price) !== null;
   });
-  const totalValue = hasCompletePrices
-    ? cart.reduce(function (sum, item) {
-        const quantity = Number(item.qty);
-        return sum + item.price * (Number.isFinite(quantity) ? Math.min(Math.max(Math.floor(quantity), 1), 99) : 1);
-      }, 0)
-    : null;
+  const itemsWithoutPrice = cart.length - itemsWithPrice.length;
+  const pricedSubtotal = itemsWithPrice.reduce(function (sum, item) {
+    return sum + getNumericPrice(item.price) * item.qty;
+  }, 0);
+  const totalLabel = itemsWithoutPrice
+    ? formatPrice(pricedSubtotal) + "+"
+    : formatPrice(pricedSubtotal);
+  const categoryLabels = {
+    platform: "Platform scales",
+    counter: "Counter scales",
+    label: "Label printing",
+    portable: "Portable & precision",
+    sealing: "Sealing machines"
+  };
+  if (count) {
+    count.textContent = cart.length + (cart.length === 1 ? " product" : " products") +
+      " · " + totalQuantity + (totalQuantity === 1 ? " item" : " items");
+  }
 
   list.innerHTML = cart
     .map(function (item, i) {
-      const quantity = Number(item && item.qty);
-      const safeQuantity = Number.isFinite(quantity) ? Math.min(Math.max(Math.floor(quantity), 1), 99) : 1;
-      const unitPrice = item.price !== undefined && item.price !== null && item.price !== ""
-        ? formatPrice(item.price)
-        : "Price on request";
-      const oldPrice = item.oldPrice !== undefined && item.oldPrice !== null && item.oldPrice !== ""
-        ? "<s>" + formatPrice(item.oldPrice) + "</s> "
-        : "";
-      const lineSubtotal = typeof item.price === "number" && Number.isFinite(item.price) && item.price >= 0
-        ? formatPrice(item.price * safeQuantity)
-        : "Price on request";
+      const price = getNumericPrice(item.price);
+      const oldPrice = getNumericPrice(item.oldPrice);
+      const category = categoryLabels[item.category] || item.category;
+      const brandCategory = [item.brand, category].filter(Boolean).map(esc).join(" <span aria-hidden=\"true\">·</span> ");
 
       return (
         '<div class="cart-item">' +
@@ -229,16 +307,21 @@ function renderCart() {
           : '<div class="cart-image-placeholder" aria-hidden="true"><i class="fa-solid fa-box-open"></i></div>') +
         '<div class="cart-info">' +
         '<strong class="cart-name">' + esc(item.name || "Product") + "</strong>" +
-        '<div class="cart-price">' + oldPrice + unitPrice + "</div>" +
+        (brandCategory ? '<div class="cart-meta">' + brandCategory + "</div>" : "") +
+        '<div class="cart-price">' + (oldPrice !== null ? "<s>" + formatPrice(oldPrice) + "</s> " : "") +
+          (price === null ? "Price on request" : formatPrice(price)) + "</div>" +
         '<div class="qty-box">' +
-        '<button type="button" data-cart-action="decrease" data-index="' + i + '" aria-label="Decrease quantity of ' + esc(item.name || "product") + '"' + (safeQuantity <= 1 ? " disabled" : "") + '>&minus;</button>' +
-        '<span aria-label="Quantity">' + safeQuantity + "</span>" +
-        '<button type="button" data-cart-action="increase" data-index="' + i + '" aria-label="Increase quantity of ' + esc(item.name || "product") + '"' + (safeQuantity >= 99 ? " disabled" : "") + '>+</button>' +
+        '<button type="button" data-cart-action="decrease" data-index="' + i + '" aria-label="Decrease quantity of ' + esc(item.name || "product") + '"' + (item.qty <= 1 ? " disabled" : "") + '>&minus;</button>' +
+        '<span aria-label="Quantity">' + item.qty + "</span>" +
+        '<button type="button" data-cart-action="increase" data-index="' + i + '" aria-label="Increase quantity of ' + esc(item.name || "product") + '"' + (item.qty >= 99 ? " disabled" : "") + '>+</button>' +
         "</div>" +
         "</div>" +
-        '<div class="cart-line-subtotal">Subtotal<strong>' + lineSubtotal + "</strong></div>" +
+        '<div class="cart-item-side">' +
+        '<div class="cart-line-subtotal">Subtotal: <strong>' +
+          (price === null ? "Price on request" : formatPrice(price * item.qty)) + "</strong></div>" +
         '<button type="button" class="remove-btn" data-cart-action="remove" data-index="' + i + '" aria-label="Remove ' + esc(item.name || "product") + ' from cart">' +
         '<i class="fa-solid fa-trash" aria-hidden="true"></i><span>Remove</span></button>' +
+        "</div>" +
         "</div>"
       );
     })
@@ -247,12 +330,16 @@ function renderCart() {
   summary.innerHTML =
     '<div class="cart-summary">' +
     "<h2>Order summary</h2>" +
-    '<div class="cart-summary-row"><span>Items</span><strong>' + totalQuantity + (totalQuantity === 1 ? " item" : " items") + "</strong></div>" +
+    '<div class="cart-summary-row"><span>Total items</span><strong>' + totalQuantity + "</strong></div>" +
     '<div class="cart-summary-row"><span>Products</span><strong>' + cart.length + "</strong></div>" +
-    '<div class="cart-summary-row cart-summary-total"><span>Estimated total</span><strong>' + (totalValue === null ? "Price on request" : formatPrice(totalValue)) + "</strong></div>" +
-    '<p class="cart-summary-note">Final pricing and availability will be confirmed by our team on WhatsApp.</p>' +
+    '<div class="cart-summary-row"><span>Subtotal</span><strong>' + totalLabel + "</strong></div>" +
+    '<div class="cart-summary-row cart-summary-total"><span>Total</span><strong>' + totalLabel + "</strong></div>" +
+    (itemsWithoutPrice
+      ? '<p class="cart-summary-note">+' + itemsWithoutPrice + (itemsWithoutPrice === 1 ? " product has" : " products have") + ' no fixed price. Final pricing will be confirmed through WhatsApp.</p>'
+      : '<p class="cart-summary-note">Final availability will be confirmed through WhatsApp.</p>') +
     '<div class="cart-actions">' +
-    '<button type="button" class="btn btn-success" data-cart-action="order"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> Order on WhatsApp</button>' +
+    '<button type="button" class="btn btn-success" data-cart-action="order"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> Order via WhatsApp</button>' +
+    '<a href="alfa.html#products" class="cart-continue"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Continue shopping</a>' +
     '<button type="button" class="cart-clear" data-cart-action="clear">Clear cart</button>' +
     "</div>" +
     "</div>";
@@ -288,8 +375,7 @@ function setupCartControls() {
 function changeQty(i, delta) {
   const cart = load(CART_KEY);
   if (!cart[i]) return;
-  const quantity = Number(cart[i].qty);
-  cart[i].qty = Math.min(Math.max((Number.isFinite(quantity) ? quantity : 1) + delta, 1), 99);
+  cart[i].qty = Math.min(Math.max(getSafeQuantity(cart[i].qty) + delta, 1), 99);
   save(CART_KEY, cart);
   updateBadge();
   renderCart();
@@ -574,8 +660,10 @@ function renderProductGrid() {
 
   const html = products
     .map(function (p) {
-      const price = p.price
-        ? '<span class="card-price">' + (p.oldPrice ? "<s>" + formatPrice(p.oldPrice) + "</s> " : "") + formatPrice(p.price) + "</span>"
+      const currentPrice = getNumericPrice(p.price);
+      const oldPrice = getNumericPrice(p.oldPrice);
+      const price = currentPrice !== null
+        ? '<span class="card-price">' + (oldPrice !== null ? "<s>" + formatPrice(oldPrice) + "</s> " : "") + formatPrice(currentPrice) + "</span>"
         : '<span class="card-price card-price-ask">Ask price</span>';
       // .card-text stays in the card (hidden) so the search box can still match brand, use and description
       const searchText = [p.description, p.brand, p.usedFor].join(" ");

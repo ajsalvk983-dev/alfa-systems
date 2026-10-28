@@ -66,6 +66,8 @@ if (!product) {
 } else {
   const images = product.images && product.images.length ? product.images : [product.image];
   const categoryLabel = CATEGORY_LABELS[product.category] || "Products";
+  const currentPrice = getNumericPrice(product.price);
+  const oldPrice = getNumericPrice(product.oldPrice);
 
   const thumbs =
     images.length > 1
@@ -120,8 +122,8 @@ if (!product) {
 
         '<div class="pd-price">' +
           "<strong>" +
-            (product.oldPrice ? "<s>" + formatPrice(product.oldPrice) + "</s> " : "") +
-            (product.price ? formatPrice(product.price) : "Price on request") +
+            (oldPrice !== null ? "<s>" + formatPrice(oldPrice) + "</s> " : "") +
+            (currentPrice === null ? "Price on request" : formatPrice(currentPrice)) +
           "</strong>" +
           "<small>" + esc(product.priceNote || "Message us on WhatsApp for today's price and stock.") + "</small>" +
         "</div>" +
@@ -180,13 +182,14 @@ function changeDetailQty(delta) {
 function addDetailToCart() {
   const cart = load(CART_KEY);
   const existing = cart.find(function (item) {
-    return item.name === product.name;
+    return item && ((product.id && String(item.id) === String(product.id)) || item.name === product.name);
   });
   if (existing) {
-    existing.qty = Math.min(existing.qty + detailQty, 99);
+    mergeCatalogueData(existing, product);
+    existing.qty = Math.min(getSafeQuantity(existing.qty) + detailQty, 99);
   } else {
-    id: product.id,
-    cart.push({ id: product.id, name: product.name, image: cld(product.image, 300), qty: detailQty });  }
+    cart.push(cartItemFromProduct(product, detailQty));
+  }
   save(CART_KEY, cart);
   updateBadge();
   showToast(product.name + " added to cart");

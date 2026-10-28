@@ -31,19 +31,18 @@
       </nav>
 
       <main class="page-wrap cart-page">
-        <header class="cart-page-head">
-          <div>
-            <p class="cart-kicker">ALFA SYSTEMS <span aria-hidden="true">/</span> YOUR SELECTION</p>
-            <h1 class="page-heading">My Cart</h1>
-            <p class="cart-intro">Review your selected products and send your enquiry to our team.</p>
-          </div>
-          <a href="alfa.html#products" class="cart-continue">
-            <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
-            Continue shopping
-          </a>
-        </header>
         <div class="cart-layout">
-          <section id="cartList" class="cart-list" aria-label="Products in your cart" aria-live="polite"></section>
+          <section class="cart-main" aria-label="Shopping cart">
+            <header class="cart-page-head">
+              <div>
+                <p class="cart-kicker">ALFA SYSTEMS <span aria-hidden="true">/</span> YOUR SELECTION</p>
+                <h1 class="page-heading">My Cart</h1>
+                <p class="cart-intro">Review your selected products and send your enquiry to our team.</p>
+              </div>
+              <p class="cart-items-count" id="cartItemsCount" aria-live="polite"></p>
+            </header>
+            <section id="cartList" class="cart-list" aria-label="Products in your cart" aria-live="polite"></section>
+          </section>
           <aside id="cartSummary" class="cart-summary-panel" aria-label="Cart summary" aria-live="polite"></aside>
         </div>
       </main>
@@ -63,7 +62,14 @@
       </nav>
     </aside>
 
+    <script src="products.js"></script>
     <script src="api.js"></script>
     <script src="alfa.js"></script>
+    <script>
+      loadProducts().then(function () {
+        updateBadge();
+        renderCart();
+      });
+    </script>
   </body>
 </html>
