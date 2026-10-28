@@ -374,7 +374,7 @@ function collectProduct() {
   const name = $("productName").value.trim();
   const id = $("productId").value.trim() || name.toLowerCase()
     .normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60).replace(/-$/g, "");
   const features = Array.from($("featuresList").querySelectorAll(".feature-input"))
     .map(function (input) { return input.value.trim(); }).filter(Boolean);
   const specs = {};
