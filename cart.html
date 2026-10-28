@@ -30,11 +30,23 @@
         </a>
       </nav>
 
-      <div class="page-wrap">
-        <h2 class="page-heading">My Cart</h2>
-        <div id="cartList"></div>
-        <div id="cartSummary"></div>
-      </div>
+      <main class="page-wrap cart-page">
+        <header class="cart-page-head">
+          <div>
+            <p class="cart-kicker">ALFA SYSTEMS <span aria-hidden="true">/</span> YOUR SELECTION</p>
+            <h1 class="page-heading">My Cart</h1>
+            <p class="cart-intro">Review your selected products and send your enquiry to our team.</p>
+          </div>
+          <a href="alfa.html#products" class="cart-continue">
+            <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+            Continue shopping
+          </a>
+        </header>
+        <div class="cart-layout">
+          <section id="cartList" class="cart-list" aria-label="Products in your cart" aria-live="polite"></section>
+          <aside id="cartSummary" class="cart-summary-panel" aria-label="Cart summary" aria-live="polite"></aside>
+        </div>
+      </main>
 
     </div>
 

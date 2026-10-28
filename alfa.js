@@ -186,51 +186,110 @@ function renderCart() {
     list.innerHTML =
       '<div class="empty-state">' +
       '<i class="fa-solid fa-cart-shopping"></i>' +
-      "<p>Your cart is empty</p>" +
+      "<h2>Your cart is empty</h2>" +
+      "<p>Explore our weighing and business equipment to get started.</p>" +
       '<a href="alfa.html#products" class="btn btn-primary">Browse products</a>' +
       "</div>";
     summary.innerHTML = "";
     return;
   }
 
+  const totalQuantity = cart.reduce(function (sum, item) {
+    const quantity = Number(item && item.qty);
+    return sum + (Number.isFinite(quantity) ? Math.min(Math.max(Math.floor(quantity), 1), 99) : 1);
+  }, 0);
+  const hasCompletePrices = cart.every(function (item) {
+    return typeof item.price === "number" && Number.isFinite(item.price) && item.price >= 0;
+  });
+  const totalValue = hasCompletePrices
+    ? cart.reduce(function (sum, item) {
+        const quantity = Number(item.qty);
+        return sum + item.price * (Number.isFinite(quantity) ? Math.min(Math.max(Math.floor(quantity), 1), 99) : 1);
+      }, 0)
+    : null;
+
   list.innerHTML = cart
     .map(function (item, i) {
+      const quantity = Number(item && item.qty);
+      const safeQuantity = Number.isFinite(quantity) ? Math.min(Math.max(Math.floor(quantity), 1), 99) : 1;
+      const unitPrice = item.price !== undefined && item.price !== null && item.price !== ""
+        ? formatPrice(item.price)
+        : "Price on request";
+      const oldPrice = item.oldPrice !== undefined && item.oldPrice !== null && item.oldPrice !== ""
+        ? "<s>" + formatPrice(item.oldPrice) + "</s> "
+        : "";
+      const lineSubtotal = typeof item.price === "number" && Number.isFinite(item.price) && item.price >= 0
+        ? formatPrice(item.price * safeQuantity)
+        : "Price on request";
+
       return (
         '<div class="cart-item">' +
-        '<img src="' + esc(item.image) + '" alt="' + esc(item.name) + '" />' +
+        (item.image
+          ? '<img src="' + esc(item.image) + '" alt="' + esc(item.name || "Product image") + '" />'
+          : '<div class="cart-image-placeholder" aria-hidden="true"><i class="fa-solid fa-box-open"></i></div>') +
         '<div class="cart-info">' +
-        '<div class="cart-name">' + esc(item.name) + "</div>" +
+        '<strong class="cart-name">' + esc(item.name || "Product") + "</strong>" +
+        '<div class="cart-price">' + oldPrice + unitPrice + "</div>" +
         '<div class="qty-box">' +
-        '<button onclick="changeQty(' + i + ', -1)" aria-label="Decrease">-</button>' +
-        "<span>" + item.qty + "</span>" +
-        '<button onclick="changeQty(' + i + ', 1)" aria-label="Increase">+</button>' +
+        '<button type="button" data-cart-action="decrease" data-index="' + i + '" aria-label="Decrease quantity of ' + esc(item.name || "product") + '"' + (safeQuantity <= 1 ? " disabled" : "") + '>&minus;</button>' +
+        '<span aria-label="Quantity">' + safeQuantity + "</span>" +
+        '<button type="button" data-cart-action="increase" data-index="' + i + '" aria-label="Increase quantity of ' + esc(item.name || "product") + '"' + (safeQuantity >= 99 ? " disabled" : "") + '>+</button>' +
         "</div>" +
         "</div>" +
-        '<button class="remove-btn" onclick="removeFromCart(' + i + ')" aria-label="Remove">' +
-        '<i class="fa-solid fa-trash"></i></button>' +
+        '<div class="cart-line-subtotal">Subtotal<strong>' + lineSubtotal + "</strong></div>" +
+        '<button type="button" class="remove-btn" data-cart-action="remove" data-index="' + i + '" aria-label="Remove ' + esc(item.name || "product") + ' from cart">' +
+        '<i class="fa-solid fa-trash" aria-hidden="true"></i><span>Remove</span></button>' +
         "</div>"
       );
     })
     .join("");
 
-  const total = cart.reduce(function (sum, item) {
-    return sum + item.qty;
-  }, 0);
-
   summary.innerHTML =
     '<div class="cart-summary">' +
-    "<div><strong>" + total + "</strong> item(s) in cart</div>" +
+    "<h2>Order summary</h2>" +
+    '<div class="cart-summary-row"><span>Items</span><strong>' + totalQuantity + (totalQuantity === 1 ? " item" : " items") + "</strong></div>" +
+    '<div class="cart-summary-row"><span>Products</span><strong>' + cart.length + "</strong></div>" +
+    '<div class="cart-summary-row cart-summary-total"><span>Estimated total</span><strong>' + (totalValue === null ? "Price on request" : formatPrice(totalValue)) + "</strong></div>" +
+    '<p class="cart-summary-note">Final pricing and availability will be confirmed by our team on WhatsApp.</p>' +
     '<div class="cart-actions">' +
-    '<button class="btn btn-outline-danger" onclick="clearCart()">Clear cart</button>' +
-    '<button class="btn btn-success" onclick="placeOrder()">Order on WhatsApp</button>' +
+    '<button type="button" class="btn btn-success" data-cart-action="order"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> Order on WhatsApp</button>' +
+    '<button type="button" class="cart-clear" data-cart-action="clear">Clear cart</button>' +
     "</div>" +
     "</div>";
+}
+
+function setupCartControls() {
+  const list = document.getElementById("cartList");
+  const summary = document.getElementById("cartSummary");
+
+  if (list) {
+    list.addEventListener("click", function (event) {
+      const button = event.target.closest("[data-cart-action]");
+      if (!button) return;
+
+      const index = Number(button.dataset.index);
+      if (button.dataset.cartAction === "decrease") changeQty(index, -1);
+      if (button.dataset.cartAction === "increase") changeQty(index, 1);
+      if (button.dataset.cartAction === "remove") removeFromCart(index);
+    });
+  }
+
+  if (summary) {
+    summary.addEventListener("click", function (event) {
+      const button = event.target.closest("[data-cart-action]");
+      if (!button) return;
+
+      if (button.dataset.cartAction === "clear") clearCart();
+      if (button.dataset.cartAction === "order") placeOrder();
+    });
+  }
 }
 
 function changeQty(i, delta) {
   const cart = load(CART_KEY);
   if (!cart[i]) return;
-  cart[i].qty = Math.min(Math.max(cart[i].qty + delta, 1), 99);
+  const quantity = Number(cart[i].qty);
+  cart[i].qty = Math.min(Math.max((Number.isFinite(quantity) ? quantity : 1) + delta, 1), 99);
   save(CART_KEY, cart);
   updateBadge();
   renderCart();
@@ -539,6 +598,7 @@ function renderProductGrid() {
 
 renderProductGrid();
 setupSearchDropdown();
+setupCartControls();
 updateBadge();
 renderCart();
 renderOrders();
