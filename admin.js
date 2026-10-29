@@ -1,11 +1,24 @@
 const PW_KEY = "alfaAdminPw";
 const CLOUD_NAME_KEY = "ddng8ksv6";
 const UPLOAD_PRESET_KEY = "alfa_products";
+const ORDER_STATUSES = [
+  "Pending",
+  "Confirmed",
+  "Processing",
+  "Shipped",
+  "Out for Delivery",
+  "Delivered",
+  "Cancelled",
+];
 let adminPw = sessionStorage.getItem(PW_KEY) || "";
 let productList = [];
+let orderList = [];
+let ordersOffset = 0;
+let totalOrdersCount = 0;
 let editorImages = [];
 let mainImageIndex = 0;
 let editingProduct = false;
+let selectedOrder = null;
 
 function $(id) {
   return document.getElementById(id);
@@ -97,8 +110,8 @@ async function login(event) {
     $("loginView").hidden = true;
     $("appView").hidden = false;
     setGlobalMessage("");
-    await loadProducts();
-    await loadOrders();
+    switchView("dashboard");
+    await Promise.all([loadProducts(), loadOrders(), loadOrderSummary()]);
   } catch (err) {
     setLoginMessage("Cannot reach the store API. Check your connection and try again.", true);
   } finally {
@@ -173,6 +186,7 @@ function renderProducts() {
   });
   $("emptyProducts").hidden = filtered.length > 0;
   $("totalProducts").textContent = String(productList.length);
+  $("dashboardTotalProducts").textContent = String(productList.length);
   $("pricedProducts").textContent = String(productList.filter(function (p) { return Boolean(p.price); }).length);
   $("lastRefreshed").textContent = new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
 }
@@ -207,31 +221,228 @@ async function loadProducts() {
   }
 }
 
-async function loadOrders() {
-  const box = $("orders");
-  box.replaceChildren(el("p", "Loading orders...", "muted"));
+async function loadOrders(offset) {
+  if (Number.isInteger(offset) && offset >= 0) ordersOffset = offset;
+  const state = $("ordersState");
+  state.hidden = false;
+  state.className = "panel-state";
+  state.textContent = "Loading orders...";
+  $("ordersTableWrap").hidden = true;
+  $("recentOrders").hidden = true;
+  $("recentOrdersState").hidden = false;
+  $("recentOrdersState").className = "panel-state";
+  $("recentOrdersState").textContent = "Loading recent orders...";
   try {
-    const res = await adminFetch("/api/admin/orders");
+    const res = await adminFetch("/api/admin/orders?offset=" + ordersOffset);
     if (!res.ok) throw new Error("Orders request failed (" + res.status + ")");
     const list = await res.json();
-    box.replaceChildren();
-    if (!Array.isArray(list) || !list.length) {
-      box.appendChild(el("p", "No orders yet.", "muted"));
+    if (!Array.isArray(list)) throw new Error("The orders API returned an invalid response.");
+    orderList = list;
+    renderOrders();
+    if (!list.length) {
+      state.hidden = false;
+      state.textContent = ordersOffset ? "No orders on this page." : "No orders yet.";
+      $("recentOrdersState").hidden = false;
+      $("recentOrdersState").textContent = "No orders yet.";
       return;
     }
-    list.forEach(function (order) {
-      const card = el("article", null, "order-card");
-      card.appendChild(el("h3", "Order #" + order.id));
-      card.appendChild(el("p", new Date(order.createdAt).toLocaleString("en-IN")));
-      const items = el("ul");
-      (order.items || []).forEach(function (item) {
-        items.appendChild(el("li", (item.name || "Product") + " × " + item.qty));
-      });
-      card.appendChild(items);
-      box.appendChild(card);
-    });
   } catch (err) {
-    if (!$("appView").hidden) box.replaceChildren(el("p", "Could not load orders: " + (err.message || "API error"), "muted"));
+    if (!$("appView").hidden) {
+      state.className = "panel-state error";
+      state.textContent = "Could not load orders: " + (err.message || "API error") + " ";
+      const retry = el("button", "Retry", "text-button");
+      retry.type = "button";
+      retry.addEventListener("click", loadOrders);
+      state.appendChild(retry);
+      $("recentOrdersState").className = "panel-state error";
+      $("recentOrdersState").textContent = "Could not load recent orders. ";
+      const recentRetry = el("button", "Retry", "text-button");
+      recentRetry.type = "button";
+      recentRetry.addEventListener("click", loadOrders);
+      $("recentOrdersState").appendChild(recentRetry);
+    }
+  }
+}
+
+async function loadOrderSummary() {
+  const state = $("summaryState");
+  state.hidden = false;
+  state.className = "panel-state";
+  state.textContent = "Loading order totals...";
+  $("totalOrders").textContent = "—";
+  $("pendingOrders").textContent = "—";
+  try {
+    const res = await adminFetch("/api/admin/orders/summary");
+    if (!res.ok) throw new Error(await apiErrorMessage(res, "load order totals"));
+    const summary = await res.json();
+    if (!Number.isFinite(Number(summary.totalOrders)) || !Number.isFinite(Number(summary.pendingOrders))) {
+      throw new Error("The order summary API returned invalid totals.");
+    }
+    $("totalOrders").textContent = Number(summary.totalOrders).toLocaleString("en-IN");
+    $("pendingOrders").textContent = Number(summary.pendingOrders).toLocaleString("en-IN");
+    totalOrdersCount = Number(summary.totalOrders);
+    updateOrdersPagination();
+    state.hidden = true;
+  } catch (err) {
+    if (!$("appView").hidden) {
+      state.className = "panel-state error";
+      state.textContent = (err.message || "Could not load order totals.") + " ";
+      const retry = el("button", "Retry", "text-button");
+      retry.type = "button";
+      retry.addEventListener("click", loadOrderSummary);
+      state.appendChild(retry);
+    }
+  }
+}
+
+function formatOrderDate(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "Date unavailable" : date.toLocaleString("en-IN");
+}
+
+function orderStatusClass(status) {
+  return "status-" + String(status || "pending").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+function orderStatusPill(status) {
+  const value = ORDER_STATUSES.includes(status) ? status : "Pending";
+  return el("span", value, "status-pill " + orderStatusClass(value));
+}
+
+function orderProductsSummary(order) {
+  const items = Array.isArray(order.items) ? order.items : [];
+  if (!items.length) return "No product details";
+  return items.slice(0, 2).map(function (item) {
+    return (item.name || "Product") + " × " + item.qty;
+  }).join(", ") + (items.length > 2 ? " +" + (items.length - 2) + " more" : "");
+}
+
+function renderOrders() {
+  const body = $("ordersTableBody");
+  body.replaceChildren();
+  const recent = $("recentOrders");
+  recent.replaceChildren();
+  if (!orderList.length) {
+    $("ordersTableWrap").hidden = true;
+    $("recentOrders").hidden = true;
+    updateOrdersPagination();
+    return;
+  }
+
+  orderList.forEach(function (order) {
+    const items = Array.isArray(order.items) ? order.items : [];
+    const row = el("tr");
+    const idCell = el("td");
+    idCell.appendChild(el("span", "#" + order.id, "order-number"));
+    const dateCell = el("td", formatOrderDate(order.createdAt));
+    const productsCell = el("td");
+    productsCell.appendChild(el("div", orderProductsSummary(order), "order-products-summary"));
+    const quantity = items.reduce(function (total, item) { return total + (Number(item.qty) || 0); }, 0);
+    const quantityCell = el("td", String(quantity));
+    const statusCell = el("td");
+    statusCell.appendChild(orderStatusPill(order.status));
+    const actionsCell = el("td");
+    const details = el("button", "View details", "table-action");
+    details.type = "button";
+    details.addEventListener("click", function () { openOrderDetails(order); });
+    actionsCell.appendChild(details);
+    row.append(idCell, dateCell, productsCell, quantityCell, statusCell, actionsCell);
+    body.appendChild(row);
+  });
+  $("ordersState").hidden = true;
+  $("ordersTableWrap").hidden = false;
+
+  orderList.slice(0, 5).forEach(function (order) {
+    const item = el("article", null, "recent-order");
+    const main = el("div", null, "recent-order-main");
+    main.append(el("strong", "Order #" + order.id), el("small", formatOrderDate(order.createdAt)));
+    item.append(main, el("div", orderProductsSummary(order), "recent-order-products"), orderStatusPill(order.status));
+    item.addEventListener("click", function () { openOrderDetails(order); });
+    item.tabIndex = 0;
+    item.setAttribute("role", "button");
+    item.setAttribute("aria-label", "View order " + order.id);
+    item.addEventListener("keydown", function (event) {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openOrderDetails(order);
+      }
+    });
+    recent.appendChild(item);
+  });
+  $("recentOrdersState").hidden = true;
+  recent.hidden = false;
+  updateOrdersPagination();
+}
+
+function updateOrdersPagination() {
+  const pagination = $("ordersPagination");
+  pagination.hidden = totalOrdersCount <= 50 && ordersOffset === 0;
+  const first = orderList.length && totalOrdersCount ? ordersOffset + 1 : 0;
+  const last = orderList.length ? Math.min(ordersOffset + orderList.length, totalOrdersCount) : 0;
+  $("ordersPageLabel").textContent = orderList.length
+    ? "Showing " + first + "–" + last + " of " + totalOrdersCount.toLocaleString("en-IN") + " orders"
+    : totalOrdersCount.toLocaleString("en-IN") + " total orders";
+  $("previousOrdersPage").disabled = ordersOffset === 0;
+  $("nextOrdersPage").disabled = ordersOffset + orderList.length >= totalOrdersCount || orderList.length < 50;
+}
+
+function openOrderDetails(order) {
+  selectedOrder = order;
+  $("orderModalTitle").textContent = "Order #" + order.id;
+  $("orderDetailDate").textContent = formatOrderDate(order.createdAt);
+  const status = ORDER_STATUSES.includes(order.status) ? order.status : "Pending";
+  $("orderDetailStatus").textContent = status;
+  $("orderStatusSelect").value = status;
+  $("orderStatusMessage").textContent = "";
+  $("orderStatusMessage").className = "status-text";
+  const list = $("orderDetailItems");
+  list.replaceChildren();
+  (Array.isArray(order.items) ? order.items : []).forEach(function (item) {
+    const row = el("li");
+    row.append(el("span", item.name || "Product"), el("strong", "× " + item.qty));
+    list.appendChild(row);
+  });
+  if (!list.children.length) list.appendChild(el("li", "No product details available."));
+  $("saveOrderStatus").disabled = false;
+  $("orderModal").hidden = false;
+  $("orderStatusSelect").focus();
+}
+
+function closeOrderDetails() {
+  $("orderModal").hidden = true;
+  selectedOrder = null;
+}
+
+async function saveOrderStatus(event) {
+  event.preventDefault();
+  if (!selectedOrder) return;
+  const status = $("orderStatusSelect").value;
+  if (!ORDER_STATUSES.includes(status)) {
+    $("orderStatusMessage").textContent = "Select a valid order status.";
+    $("orderStatusMessage").className = "status-text error";
+    return;
+  }
+  const button = $("saveOrderStatus");
+  const orderId = selectedOrder.id;
+  button.disabled = true;
+  $("orderStatusMessage").textContent = "Saving order status...";
+  $("orderStatusMessage").className = "status-text";
+  try {
+    const res = await adminFetch("/api/admin/orders/" + encodeURIComponent(selectedOrder.id) + "/status", {
+      method: "PATCH",
+      body: JSON.stringify({ status: status }),
+    });
+    if (!res.ok) throw new Error(await apiErrorMessage(res, "update order status"));
+    selectedOrder.status = status;
+    renderOrders();
+    closeOrderDetails();
+    setGlobalMessage("Order #" + orderId + " status updated.");
+    await Promise.all([loadOrderSummary(), loadOrders()]);
+  } catch (err) {
+    $("orderStatusMessage").textContent = err.message || "Could not update order status.";
+    $("orderStatusMessage").className = "status-text error";
+  } finally {
+    button.disabled = false;
   }
 }
 
@@ -514,25 +725,42 @@ function addImageUrl() {
 }
 
 function switchView(view) {
+  const dashboard = view === "dashboard";
+  const catalogue = view === "catalogue";
   const orders = view === "orders";
-  $("catalogueView").hidden = orders;
+  $("dashboardView").hidden = !dashboard;
+  $("catalogueView").hidden = !catalogue;
   $("ordersView").hidden = !orders;
-  $("pageTitle").textContent = orders ? "Orders" : "Products";
-  $("addProductTop").hidden = orders;
+  $("pageTitle").textContent = dashboard ? "Overview" : orders ? "Orders" : "Products";
+  $("addProductTop").hidden = !catalogue;
   document.querySelectorAll(".nav-link").forEach(function (link) {
     link.classList.toggle("active", link.dataset.view === view);
   });
+  if (dashboard && ordersOffset !== 0) loadOrders(0);
 }
 
 $("loginForm").addEventListener("submit", login);
 $("logoutBtn").addEventListener("click", function () { showLogin(""); });
 $("searchInput").addEventListener("input", renderProducts);
+$("refreshOrders").addEventListener("click", function () { loadOrders(); });
+$("previousOrdersPage").addEventListener("click", function () {
+  loadOrders(Math.max(0, ordersOffset - 50));
+});
+$("nextOrdersPage").addEventListener("click", function () {
+  if (ordersOffset + orderList.length < totalOrdersCount) loadOrders(ordersOffset + 50);
+});
 $("addProductTop").addEventListener("click", function () { openEditor(null); });
 document.querySelectorAll("[data-add-product]").forEach(function (button) {
   button.addEventListener("click", function () { openEditor(null); });
 });
 $("closeEditor").addEventListener("click", closeEditor);
 $("cancelEditor").addEventListener("click", closeEditor);
+$("closeOrderModal").addEventListener("click", closeOrderDetails);
+$("cancelOrderModal").addEventListener("click", closeOrderDetails);
+$("orderStatusForm").addEventListener("submit", saveOrderStatus);
+$("orderModal").addEventListener("click", function (event) {
+  if (event.target === $("orderModal")) closeOrderDetails();
+});
 $("editorModal").addEventListener("click", function (event) {
   if (event.target === $("editorModal")) closeEditor();
 });
@@ -556,8 +784,14 @@ document.querySelectorAll(".nav-link").forEach(function (link) {
     switchView(link.dataset.view);
   });
 });
+document.querySelectorAll("[data-view-link]").forEach(function (button) {
+  button.addEventListener("click", function () {
+    switchView(button.dataset.viewLink);
+  });
+});
 document.addEventListener("keydown", function (event) {
   if (event.key === "Escape" && !$("editorModal").hidden) closeEditor();
+  if (event.key === "Escape" && !$("orderModal").hidden) closeOrderDetails();
 });
 
 async function restoreSession() {
@@ -570,8 +804,8 @@ async function restoreSession() {
     }
     $("loginView").hidden = true;
     $("appView").hidden = false;
-    await loadProducts();
-    await loadOrders();
+    switchView("dashboard");
+    await Promise.all([loadProducts(), loadOrders(), loadOrderSummary()]);
   } catch (err) {
     showLogin("");
   }
