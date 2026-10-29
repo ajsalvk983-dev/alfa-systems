@@ -338,6 +338,7 @@ function renderCart() {
       ? '<p class="cart-summary-note">+' + itemsWithoutPrice + (itemsWithoutPrice === 1 ? " product has" : " products have") + ' no fixed price. Final pricing will be confirmed through WhatsApp.</p>'
       : '<p class="cart-summary-note">Final availability will be confirmed through WhatsApp.</p>') +
     '<div class="cart-actions">' +
+    '<a href="checkout.html" class="btn btn-primary checkout-link"><i class="fa-solid fa-lock" aria-hidden="true"></i> Proceed to checkout</a>' +
     '<button type="button" class="btn btn-success" data-cart-action="order"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> Order via WhatsApp</button>' +
     '<a href="alfa.html#products" class="cart-continue"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Continue shopping</a>' +
     '<button type="button" class="cart-clear" data-cart-action="clear">Clear cart</button>' +

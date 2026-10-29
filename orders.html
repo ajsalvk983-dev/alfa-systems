@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="alfa.css" />
     <link rel="stylesheet" href="pages.css" />
     <link rel="stylesheet" href="responsive.css" />
+    <link rel="stylesheet" href="checkout.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Manjari:wght@400;700&family=Poppins:wght@800&display=swap" rel="stylesheet" />
@@ -32,6 +33,12 @@
 
       <div class="page-wrap">
         <h2 class="page-heading">My Orders</h2>
+        <section class="database-orders-section" aria-labelledby="checkoutOrdersTitle">
+          <h3 id="checkoutOrdersTitle">Checkout orders</h3>
+          <div id="databaseOrdersState" class="database-orders-state" role="status" aria-live="polite">Loading saved orders…</div>
+          <div id="databaseOrdersList"></div>
+        </section>
+        <h3 class="orders-history-title">WhatsApp order history</h3>
         <div id="ordersList"></div>
         <div id="ordersActions"></div>
       </div>
@@ -51,6 +58,9 @@
       </nav>
     </aside>
 
+    <script src="products.js"></script>
+    <script src="api.js"></script>
     <script src="alfa.js"></script>
+    <script src="my-orders.js"></script>
   </body>
 </html>

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f5f7fb" />
+    <title>Checkout | ALFA SYSTEMS</title>
+    <script src="https://kit.fontawesome.com/ccc999b0a6.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="alfa.css" />
+    <link rel="stylesheet" href="pages.css" />
+    <link rel="stylesheet" href="responsive.css" />
+    <link rel="stylesheet" href="checkout.css" />
+  </head>
+  <body>
+    <div class="main-content">
+      <nav class="navbar navbar-green">
+        <div class="menu-btn" id="menuBtn"><i class="fa-solid fa-bars"></i></div>
+        <a class="navbar-brand" href="alfa.html"><img src="https://res.cloudinary.com/ddng8ksv6/image/upload/v1791894089/image-removebg-preview_mbsics.png" width="30" height="30" alt="ALFA SYSTEMS" /></a>
+        <span class="nav-title">Secure checkout</span>
+        <a href="cart.html" class="cart-link" aria-label="Return to cart"><i class="fa-solid fa-cart-shopping"></i><span class="cart-count" id="cartCount" hidden>0</span></a>
+      </nav>
+
+      <main class="page-wrap checkout-page">
+        <div id="checkoutLoading" class="checkout-notice" role="status">Loading your cart…</div>
+        <div id="checkoutError" class="checkout-notice checkout-error" role="alert" hidden></div>
+        <section id="checkoutEmpty" class="empty-state" hidden>
+          <i class="fa-solid fa-cart-shopping" aria-hidden="true"></i>
+          <h1>Your cart is empty</h1>
+          <p>Add products to your cart before checking out.</p>
+          <a href="alfa.html#products" class="btn btn-primary">Browse products</a>
+        </section>
+
+        <form id="checkoutForm" class="checkout-layout" hidden novalidate>
+          <div class="checkout-main">
+            <header class="checkout-heading">
+              <p class="checkout-kicker">ALFA SYSTEMS <span>/</span> CHECKOUT</p>
+              <h1>Complete your order</h1>
+              <p>Provide your contact and delivery details. Your order will be saved with Pending status.</p>
+            </header>
+
+            <section class="checkout-section">
+              <div class="checkout-section-heading"><span>01</span><div><h2>Customer information</h2><p>How we can contact you about this order.</p></div></div>
+              <div class="checkout-fields">
+                <label class="checkout-field checkout-span-2">Full name
+                  <input id="customerName" name="name" autocomplete="name" maxlength="150" required />
+                </label>
+                <label class="checkout-field">Mobile number
+                  <input id="customerPhone" name="phone" type="tel" inputmode="numeric" autocomplete="tel-national" pattern="[6-9][0-9]{9}" maxlength="10" placeholder="10-digit Indian mobile number" required />
+                </label>
+                <label class="checkout-field">Email address <span class="optional-label">Optional</span>
+                  <input id="customerEmail" name="email" type="email" autocomplete="email" maxlength="254" />
+                </label>
+              </div>
+            </section>
+
+            <section class="checkout-section">
+              <div class="checkout-section-heading"><span>02</span><div><h2>Delivery details</h2><p>Enter the address for this order.</p></div></div>
+              <div class="checkout-fields">
+                <label class="checkout-field checkout-span-2">Address
+                  <textarea id="deliveryAddress" name="address" autocomplete="street-address" maxlength="10000" rows="3" required></textarea>
+                </label>
+                <label class="checkout-field">City
+                  <input id="deliveryCity" name="city" autocomplete="address-level2" maxlength="100" required />
+                </label>
+                <label class="checkout-field">State
+                  <input id="deliveryState" name="state" autocomplete="address-level1" maxlength="100" required />
+                </label>
+                <label class="checkout-field">PIN code
+                  <input id="deliveryPincode" name="pincode" inputmode="numeric" autocomplete="postal-code" pattern="[0-9]{6}" maxlength="6" placeholder="6-digit PIN code" required />
+                </label>
+              </div>
+            </section>
+
+            <section class="checkout-section">
+              <div class="checkout-section-heading"><span>03</span><div><h2>Delivery method</h2><p>Choose how you would like to receive your order.</p></div></div>
+              <div class="checkout-choice-grid">
+                <label class="checkout-choice"><input type="radio" name="deliveryMethod" value="Home Delivery" checked required /><span class="choice-icon"><i class="fa-solid fa-truck" aria-hidden="true"></i></span><span><strong>Home Delivery</strong><small>Deliver to the address above</small></span></label>
+                <label class="checkout-choice"><input type="radio" name="deliveryMethod" value="Store Pickup" required /><span class="choice-icon"><i class="fa-solid fa-store" aria-hidden="true"></i></span><span><strong>Store Pickup</strong><small>Collect from ALFA SYSTEMS</small></span></label>
+              </div>
+              <p id="selectedDeliveryText" class="selected-choice-note">Selected: Home Delivery</p>
+            </section>
+
+            <section class="checkout-section">
+              <div class="checkout-section-heading"><span>04</span><div><h2>Payment method</h2><p>Select a preferred payment method. This does not process a payment.</p></div></div>
+              <div class="checkout-choice-grid payment-choices">
+                <label class="checkout-choice"><input type="radio" name="paymentMethod" value="Cash on Delivery" checked required /><span class="choice-icon"><i class="fa-solid fa-money-bill-wave" aria-hidden="true"></i></span><span><strong>Cash on Delivery</strong><small>Payment is not collected now</small></span></label>
+                <label class="checkout-choice"><input type="radio" name="paymentMethod" value="UPI" required /><span class="choice-icon"><i class="fa-solid fa-mobile-screen-button" aria-hidden="true"></i></span><span><strong>UPI</strong><small>Preference only; no payment taken</small></span></label>
+                <label class="checkout-choice"><input type="radio" name="paymentMethod" value="Card" required /><span class="choice-icon"><i class="fa-regular fa-credit-card" aria-hidden="true"></i></span><span><strong>Card</strong><small>Preference only; no payment taken</small></span></label>
+                <label class="checkout-choice"><input type="radio" name="paymentMethod" value="Net Banking" required /><span class="choice-icon"><i class="fa-solid fa-building-columns" aria-hidden="true"></i></span><span><strong>Net Banking</strong><small>Preference only; no payment taken</small></span></label>
+              </div>
+              <p class="payment-disclaimer">Online payment processing is not available in this checkout. Selecting UPI, Card, or Net Banking records your preference only; no money will be charged or marked as received.</p>
+            </section>
+          </div>
+
+          <aside class="checkout-summary">
+            <div class="checkout-summary-card">
+              <h2>Order summary</h2>
+              <div id="checkoutItems" class="checkout-items"></div>
+              <div class="checkout-total-row"><span>Subtotal</span><strong id="checkoutSubtotal">—</strong></div>
+              <div class="checkout-total-row checkout-grand-total"><span>Total</span><strong id="checkoutTotal">—</strong></div>
+              <p class="checkout-summary-note">Final availability will be confirmed by ALFA SYSTEMS.</p>
+              <p id="checkoutPriceWarning" class="checkout-price-warning" hidden></p>
+              <p id="checkoutMessage" class="checkout-message" role="alert" aria-live="polite"></p>
+              <button id="placeOrderButton" class="checkout-submit" type="submit" disabled><span>Place order</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>
+              <a class="checkout-back" href="cart.html"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Return to cart</a>
+            </div>
+          </aside>
+        </form>
+
+        <section id="orderConfirmation" class="confirmation-card" hidden aria-live="polite">
+          <div class="confirmation-mark"><i class="fa-solid fa-check" aria-hidden="true"></i></div>
+          <p class="checkout-kicker">ALFA SYSTEMS <span>/</span> ORDER CONFIRMATION</p>
+          <h1>Order placed successfully</h1>
+          <p class="confirmation-intro">Your order has been recorded. Our team will confirm availability and next steps.</p>
+          <div class="confirmation-details">
+            <div><span>Order ID</span><strong id="confirmationOrderId">—</strong></div>
+            <div><span>Order date</span><strong id="confirmationDate">—</strong></div>
+            <div><span>Total amount</span><strong id="confirmationTotal">—</strong></div>
+            <div><span>Payment method</span><strong id="confirmationPayment">—</strong></div>
+            <div><span>Delivery method</span><strong id="confirmationDelivery">—</strong></div>
+            <div><span>Current status</span><strong id="confirmationStatus">Pending</strong></div>
+          </div>
+          <p class="payment-disclaimer confirmation-payment-note">No online payment was processed or received.</p>
+          <p id="confirmationStorageWarning" class="checkout-message" role="status" hidden></p>
+          <div class="confirmation-actions"><a href="orders.html" class="checkout-action checkout-action-primary">View My Orders</a><a href="alfa.html#products" class="checkout-action checkout-action-secondary">Continue shopping</a></div>
+        </section>
+      </main>
+    </div>
+
+    <div class="overlay" id="overlay"></div>
+    <aside class="sidebar" id="sidebar"><div class="logo"><img src="https://res.cloudinary.com/ddng8ksv6/image/upload/v1791894089/image-removebg-preview_mbsics.png" alt="ALFA SYSTEMS" class="img-fluid" /></div><nav><a href="alfa.html">Home</a><a href="alfa.html#products">My Products</a><a href="cart.html">My Cart</a><a href="orders.html">My Orders</a></nav></aside>
+
+    <script src="products.js"></script>
+    <script src="api.js"></script>
+    <script src="alfa.js"></script>
+    <script src="checkout.js"></script>
+  </body>
+</html>
