@@ -45,12 +45,14 @@ function toggleSidebar() {
   sidebar.classList.toggle("open");
   overlay.classList.toggle("show");
   document.body.classList.toggle("sidebar-open");
+  if (menuBtn) menuBtn.setAttribute("aria-expanded", sidebar.classList.contains("open") ? "true" : "false");
 }
 
 function closeSidebar() {
   sidebar.classList.remove("open");
   overlay.classList.remove("show");
   document.body.classList.remove("sidebar-open");
+  if (menuBtn) menuBtn.setAttribute("aria-expanded", "false");
 }
 
 if (menuBtn) menuBtn.addEventListener("click", toggleSidebar);
@@ -371,8 +373,9 @@ function renderCart() {
     "<h2>Order summary</h2>" +
     '<div class="cart-summary-row"><span>Total items</span><strong>' + totalQuantity + "</strong></div>" +
     '<div class="cart-summary-row"><span>Products</span><strong>' + cart.length + "</strong></div>" +
-    '<div class="cart-summary-row"><span>Subtotal</span><strong>' + totalLabel + "</strong></div>" +
-    '<div class="cart-summary-row cart-summary-total"><span>Total</span><strong>' + totalLabel + "</strong></div>" +
+    '<div class="cart-summary-row"><span>Product subtotal</span><strong>' + totalLabel + "</strong></div>" +
+    '<div class="cart-summary-row"><span>Delivery charge</span><strong>To be confirmed</strong></div>' +
+    '<div class="cart-summary-row cart-summary-total"><span>Final total</span><strong>To be confirmed</strong></div>' +
     (itemsWithoutPrice
       ? '<p class="cart-summary-note">' + itemsWithoutPrice + (itemsWithoutPrice === 1 ? " product has" : " products have") + ' no fixed price. The team will confirm the final price.</p>'
       : '<p class="cart-summary-note">Delivery charges are confirmed based on your location and order.</p>') +

@@ -142,10 +142,13 @@
           <h3>Products</h3>
           <ul id="orderDetailItems" class="order-detail-items"></ul>
           <form id="deliveryChargeForm" class="order-status-form">
+            <label class="form-field" for="orderSubtotalInput">Confirm product subtotal (₹)
+              <input id="orderSubtotalInput" type="number" min="0" max="99999999.99" step="0.01" inputmode="decimal" required />
+            </label>
             <label class="form-field" for="deliveryChargeInput">Confirm home-delivery charge (₹)
               <input id="deliveryChargeInput" type="number" min="0" max="99999999.99" step="0.01" inputmode="decimal" required />
             </label>
-            <p class="muted">The final total will include the saved product subtotal when available.</p>
+            <p class="muted">Confirm the product subtotal and location-specific delivery charge. The order total will be calculated and shown to the customer.</p>
             <p id="deliveryChargeMessage" class="status-text" role="status" aria-live="polite"></p>
             <div class="order-modal-actions"><button id="saveDeliveryCharge" class="button button-primary" type="submit">Save delivery charge</button></div>
           </form>

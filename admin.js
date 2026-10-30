@@ -453,6 +453,10 @@ function openOrderDetails(order) {
   $("deliveryChargeInput").value = order.deliveryChargeConfirmed && order.deliveryCharge !== null
     ? String(order.deliveryCharge)
     : "";
+  $("orderSubtotalInput").value = order.subtotal === null || order.subtotal === undefined
+    ? ""
+    : String(order.subtotal);
+  $("orderSubtotalInput").disabled = order.deliveryMethod !== "Home Delivery";
   $("deliveryChargeInput").disabled = order.deliveryMethod !== "Home Delivery";
   $("saveDeliveryCharge").disabled = order.deliveryMethod !== "Home Delivery";
   $("deliveryChargeMessage").textContent = order.deliveryMethod === "Home Delivery"
@@ -519,10 +523,13 @@ async function saveDeliveryCharge(event) {
   event.preventDefault();
   if (!selectedOrder) return;
   const input = $("deliveryChargeInput");
-  if (!input.reportValidity()) return;
+  const subtotalInput = $("orderSubtotalInput");
+  if (!subtotalInput.reportValidity() || !input.reportValidity()) return;
   const charge = Number(input.value);
-  if (!Number.isFinite(charge) || charge < 0 || charge > 99999999.99) {
-    $("deliveryChargeMessage").textContent = "Enter a valid non-negative delivery charge.";
+  const subtotal = Number(subtotalInput.value);
+  if (!Number.isFinite(charge) || charge < 0 || charge > 99999999.99 ||
+      !Number.isFinite(subtotal) || subtotal < 0 || subtotal > 99999999.99) {
+    $("deliveryChargeMessage").textContent = "Enter valid non-negative product and delivery amounts.";
     $("deliveryChargeMessage").className = "status-text error";
     return;
   }
@@ -533,7 +540,7 @@ async function saveDeliveryCharge(event) {
   try {
     const response = await adminFetch(
       "/api/admin/orders/" + encodeURIComponent(selectedOrder.id) + "/delivery-charge",
-      { method: "PATCH", body: JSON.stringify({ deliveryCharge: charge }) }
+      { method: "PATCH", body: JSON.stringify({ subtotal: subtotal, deliveryCharge: charge }) }
     );
     if (!response.ok) throw new Error(await apiErrorMessage(response, "save delivery charge"));
     const updated = await response.json();
@@ -541,6 +548,7 @@ async function saveDeliveryCharge(event) {
     const listedOrder = orderList.find(function (order) { return String(order.id) === String(updated.id); });
     if (listedOrder) Object.assign(listedOrder, updated);
     $("orderDetailDeliveryCharge").textContent = displayOrderAmount(updated.deliveryCharge);
+    $("orderDetailSubtotal").textContent = displayOrderAmount(updated.subtotal);
     $("orderDetailTotal").textContent = updated.totalAmount === null
       ? "To be confirmed"
       : displayOrderAmount(updated.totalAmount);

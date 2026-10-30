@@ -61,11 +61,14 @@ function renderDatabaseOrder(order) {
     items.appendChild(row);
   });
   card.appendChild(items);
-  if (order.subtotal !== null && order.subtotal !== undefined) {
-    const row = myOrderElement("div", null, "database-order-total");
-    row.append(myOrderElement("span", "Subtotal"), myOrderElement("strong", myOrderCurrency(order.subtotal)));
-    card.appendChild(row);
-  }
+  const subtotalRow = myOrderElement("div", null, "database-order-total");
+  subtotalRow.append(
+    myOrderElement("span", "Product subtotal"),
+    myOrderElement("strong", order.subtotal === null || order.subtotal === undefined
+      ? "Price to be confirmed"
+      : myOrderCurrency(order.subtotal))
+  );
+  card.appendChild(subtotalRow);
   const deliveryPending = order.deliveryMethod === "Home Delivery" && order.deliveryChargeConfirmed === false;
   const deliveryRow = myOrderElement("div", null, "database-order-total");
   deliveryRow.append(
