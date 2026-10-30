@@ -1,6 +1,7 @@
 const CHECKOUT_ORDERS_KEY = "alfaCheckoutOrderAccess";
 let checkoutCart = [];
 let checkoutProducts = new Map();
+let checkoutDeliveryCharges = null;
 let checkoutSubmitting = false;
 
 function checkoutElement(tag, text, className) {
@@ -56,6 +57,7 @@ function renderCheckoutSummary() {
   document.getElementById("checkoutEmpty").hidden = !empty;
   if (empty) {
     document.getElementById("checkoutSubtotal").textContent = checkoutCurrency(0);
+    document.getElementById("checkoutDeliveryCharge").textContent = checkoutCurrency(0);
     document.getElementById("checkoutTotal").textContent = checkoutCurrency(0);
     document.getElementById("placeOrderButton").disabled = true;
     return;
@@ -124,10 +126,19 @@ function renderCheckoutSummary() {
     warning.textContent = "";
   }
   const canCalculate = !hasUnavailableProduct && !hasUnpricedProduct;
-  const total = canCalculate ? checkoutCurrency(totalCents / 100) : "Unavailable";
-  document.getElementById("checkoutSubtotal").textContent = total;
-  document.getElementById("checkoutTotal").textContent = total;
-  document.getElementById("placeOrderButton").disabled = checkoutSubmitting || !canCalculate;
+  const deliveryMethod = selectedCheckoutValue("deliveryMethod");
+  const deliveryCharge = checkoutDeliveryCharges && checkoutDeliveryCharges[deliveryMethod];
+  const hasDeliveryCharge = Number.isFinite(deliveryCharge) && deliveryCharge >= 0;
+  document.getElementById("checkoutSubtotal").textContent = canCalculate
+    ? checkoutCurrency(totalCents / 100)
+    : "Unavailable";
+  document.getElementById("checkoutDeliveryCharge").textContent = hasDeliveryCharge
+    ? checkoutCurrency(deliveryCharge)
+    : "Unavailable";
+  document.getElementById("checkoutTotal").textContent = canCalculate && hasDeliveryCharge
+    ? checkoutCurrency((totalCents + Math.round(deliveryCharge * 100)) / 100)
+    : "Unavailable";
+  document.getElementById("placeOrderButton").disabled = checkoutSubmitting || !canCalculate || !hasDeliveryCharge;
 }
 
 function persistCartQuantities() {
@@ -196,8 +207,11 @@ function showOrderConfirmation(order) {
   document.getElementById("confirmationDate").textContent = Number.isNaN(createdAt.getTime())
     ? "Just now"
     : createdAt.toLocaleString("en-IN");
+  document.getElementById("confirmationSubtotal").textContent = checkoutCurrency(Number(order.subtotal));
+  document.getElementById("confirmationDeliveryCharge").textContent = checkoutCurrency(Number(order.deliveryCharge));
   document.getElementById("confirmationTotal").textContent = checkoutCurrency(Number(order.totalAmount));
   document.getElementById("confirmationPayment").textContent = order.paymentMethod;
+  document.getElementById("confirmationPaymentStatus").textContent = order.paymentStatus;
   document.getElementById("confirmationDelivery").textContent = order.deliveryMethod;
   document.getElementById("confirmationStatus").textContent = order.status || "Pending";
   document.getElementById("orderConfirmation").hidden = false;
@@ -228,6 +242,7 @@ async function submitCheckout(event) {
         method: selectedCheckoutValue("deliveryMethod"),
         address: document.getElementById("deliveryAddress").value.trim(),
         city: document.getElementById("deliveryCity").value.trim(),
+        district: document.getElementById("deliveryDistrict").value.trim(),
         state: document.getElementById("deliveryState").value.trim(),
         pincode: document.getElementById("deliveryPincode").value.trim(),
       },
@@ -273,7 +288,8 @@ async function submitCheckout(event) {
     label.textContent = previousLabel;
     button.disabled = checkoutCart.length === 0 || checkoutCart.some(function (item) {
       return !item.product || getNumericPrice(item.product.price) === null;
-    });
+    }) || !checkoutDeliveryCharges ||
+      !Number.isFinite(checkoutDeliveryCharges[selectedCheckoutValue("deliveryMethod")]);
   }
 }
 
@@ -283,6 +299,7 @@ document.getElementById("checkoutForm").addEventListener("submit", submitCheckou
 document.querySelectorAll('input[name="deliveryMethod"]').forEach(function (input) {
   input.addEventListener("change", function () {
     document.getElementById("selectedDeliveryText").textContent = "Selected: " + selectedCheckoutValue("deliveryMethod");
+    renderCheckoutSummary();
   });
 });
 document.getElementById("customerPhone").addEventListener("input", function (event) {
@@ -298,15 +315,28 @@ async function initializeCheckout() {
     const controller = new AbortController();
     const timeout = setTimeout(function () { controller.abort(); }, 12000);
     let response;
+    let optionsResponse;
     try {
-      response = await fetch(API_URL + "/api/products", { signal: controller.signal });
+      [response, optionsResponse] = await Promise.all([
+        fetch(API_URL + "/api/products", { signal: controller.signal }),
+        fetch(API_URL + "/api/checkout/options", { signal: controller.signal }),
+      ]);
     } finally {
       clearTimeout(timeout);
     }
     if (!response.ok) throw new Error("Could not load current product details (HTTP " + response.status + ").");
+    if (!optionsResponse.ok) throw new Error("Could not load current delivery options (HTTP " + optionsResponse.status + ").");
     const data = await response.json();
     if (!Array.isArray(data)) throw new Error("The products API returned an invalid response.");
+    const options = await optionsResponse.json();
+    const deliveryCharges = options && options.deliveryCharges;
+    if (!deliveryCharges || !["Home Delivery", "Store Pickup"].every(function (method) {
+      return Number.isFinite(deliveryCharges[method]) && deliveryCharges[method] >= 0;
+    })) {
+      throw new Error("The checkout options API returned invalid delivery charges.");
+    }
     products.splice(0, products.length, ...data);
+    checkoutDeliveryCharges = deliveryCharges;
     checkoutProducts = new Map(data.map(function (product) { return [String(product.id), product]; }));
     resolveCheckoutCart();
     updateBadge();

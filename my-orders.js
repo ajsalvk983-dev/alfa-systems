@@ -26,6 +26,17 @@ function myOrderDate(value) {
   return Number.isNaN(date.getTime()) ? "Date unavailable" : date.toLocaleString("en-IN");
 }
 
+function myOrderCurrency(value) {
+  const amount = Number(value);
+  return Number.isFinite(amount)
+    ? new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 2,
+    }).format(amount)
+    : "—";
+}
+
 function renderDatabaseOrder(order) {
   const card = myOrderElement("article", null, "database-order-card");
   const head = myOrderElement("div", null, "database-order-head");
@@ -50,20 +61,26 @@ function renderDatabaseOrder(order) {
     items.appendChild(row);
   });
   card.appendChild(items);
-  if (order.totalAmount !== null && order.totalAmount !== undefined) {
-    const total = new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      maximumFractionDigits: 2,
-    }).format(Number(order.totalAmount));
+  if (order.subtotal !== null && order.subtotal !== undefined) {
     const row = myOrderElement("div", null, "database-order-total");
-    row.append(myOrderElement("span", "Total"), myOrderElement("strong", total));
+    row.append(myOrderElement("span", "Subtotal"), myOrderElement("strong", myOrderCurrency(order.subtotal)));
+    card.appendChild(row);
+  }
+  if (order.deliveryCharge !== null && order.deliveryCharge !== undefined) {
+    const row = myOrderElement("div", null, "database-order-total");
+    row.append(myOrderElement("span", "Delivery charge"), myOrderElement("strong", myOrderCurrency(order.deliveryCharge)));
+    card.appendChild(row);
+  }
+  if (order.totalAmount !== null && order.totalAmount !== undefined) {
+    const row = myOrderElement("div", null, "database-order-total");
+    row.append(myOrderElement("span", "Total"), myOrderElement("strong", myOrderCurrency(order.totalAmount)));
     card.appendChild(row);
   }
   const meta = myOrderElement("div", null, "database-order-meta");
-  if (order.paymentMethod) meta.appendChild(myOrderElement("span", "Payment preference: " + order.paymentMethod));
+  if (order.paymentMethod) meta.appendChild(myOrderElement("span", "Payment method: " + order.paymentMethod));
+  if (order.paymentStatus) meta.appendChild(myOrderElement("span", "Payment status: " + order.paymentStatus));
   if (order.deliveryMethod) meta.appendChild(myOrderElement("span", order.deliveryMethod));
-  if (order.paymentMethod || order.deliveryMethod) card.appendChild(meta);
+  if (order.paymentMethod || order.paymentStatus || order.deliveryMethod) card.appendChild(meta);
   return card;
 }
 

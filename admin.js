@@ -138,6 +138,12 @@ function displayPrice(value) {
     : String(value);
 }
 
+function displayOrderAmount(value) {
+  return value === null || value === undefined || value === ""
+    ? "—"
+    : displayPrice(value);
+}
+
 function imageUrls(product) {
   const imgs = Array.isArray(product.images) ? product.images.filter(Boolean) : [];
   if (imgs.length) return imgs;
@@ -335,10 +341,19 @@ function renderOrders() {
     const idCell = el("td");
     idCell.appendChild(el("span", "#" + order.id, "order-number"));
     const dateCell = el("td", formatOrderDate(order.createdAt));
+    const customerCell = el("td", null, "order-customer-cell");
+    customerCell.appendChild(el("strong", order.customerName || "—"));
+    if (order.phone) customerCell.appendChild(el("small", order.phone));
     const productsCell = el("td");
     productsCell.appendChild(el("div", orderProductsSummary(order), "order-products-summary"));
     const quantity = items.reduce(function (total, item) { return total + (Number(item.qty) || 0); }, 0);
     const quantityCell = el("td", String(quantity));
+    const subtotalCell = el("td", displayOrderAmount(order.subtotal));
+    const deliveryCell = el("td", displayOrderAmount(order.deliveryCharge));
+    const totalCell = el("td", displayOrderAmount(order.totalAmount));
+    const paymentCell = el("td", null, "order-payment-cell");
+    paymentCell.appendChild(el("strong", order.paymentMethod || "—"));
+    if (order.paymentStatus) paymentCell.appendChild(el("small", order.paymentStatus));
     const statusCell = el("td");
     statusCell.appendChild(orderStatusPill(order.status));
     const actionsCell = el("td");
@@ -346,7 +361,10 @@ function renderOrders() {
     details.type = "button";
     details.addEventListener("click", function () { openOrderDetails(order); });
     actionsCell.appendChild(details);
-    row.append(idCell, dateCell, productsCell, quantityCell, statusCell, actionsCell);
+    row.append(
+      idCell, dateCell, customerCell, productsCell, quantityCell, subtotalCell,
+      deliveryCell, totalCell, paymentCell, statusCell, actionsCell
+    );
     body.appendChild(row);
   });
   $("ordersState").hidden = true;
@@ -390,6 +408,18 @@ function openOrderDetails(order) {
   selectedOrder = order;
   $("orderModalTitle").textContent = "Order #" + order.id;
   $("orderDetailDate").textContent = formatOrderDate(order.createdAt);
+  $("orderDetailCustomer").textContent = order.customerName || "—";
+  $("orderDetailContact").textContent = [order.phone, order.email].filter(Boolean).join(" · ") || "—";
+  $("orderDetailAddress").textContent = [
+    order.address,
+    [order.city, order.district, order.state, order.pincode].filter(Boolean).join(", "),
+  ].filter(Boolean).join(", ") || "—";
+  $("orderDetailDelivery").textContent = order.deliveryMethod || "—";
+  $("orderDetailPayment").textContent = order.paymentMethod || "—";
+  $("orderDetailPaymentStatus").textContent = order.paymentStatus || "Pending";
+  $("orderDetailSubtotal").textContent = displayOrderAmount(order.subtotal);
+  $("orderDetailDeliveryCharge").textContent = displayOrderAmount(order.deliveryCharge);
+  $("orderDetailTotal").textContent = displayOrderAmount(order.totalAmount);
   const status = ORDER_STATUSES.includes(order.status) ? order.status : "Pending";
   $("orderDetailStatus").textContent = status;
   $("orderStatusSelect").value = status;

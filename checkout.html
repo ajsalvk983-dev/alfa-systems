@@ -48,7 +48,7 @@
                   <input id="customerPhone" name="phone" type="tel" inputmode="numeric" autocomplete="tel-national" pattern="[6-9][0-9]{9}" maxlength="10" placeholder="10-digit Indian mobile number" required />
                 </label>
                 <label class="checkout-field">Email address <span class="optional-label">Optional</span>
-                  <input id="customerEmail" name="email" type="email" autocomplete="email" maxlength="254" />
+                  <input id="customerEmail" name="email" type="email" autocomplete="email" maxlength="150" />
                 </label>
               </div>
             </section>
@@ -57,10 +57,13 @@
               <div class="checkout-section-heading"><span>02</span><div><h2>Delivery details</h2><p>Enter the address for this order.</p></div></div>
               <div class="checkout-fields">
                 <label class="checkout-field checkout-span-2">Address
-                  <textarea id="deliveryAddress" name="address" autocomplete="street-address" maxlength="10000" rows="3" required></textarea>
+                  <textarea id="deliveryAddress" name="address" autocomplete="street-address" maxlength="255" required></textarea>
                 </label>
                 <label class="checkout-field">City
                   <input id="deliveryCity" name="city" autocomplete="address-level2" maxlength="100" required />
+                </label>
+                <label class="checkout-field">District
+                  <input id="deliveryDistrict" name="district" maxlength="100" required />
                 </label>
                 <label class="checkout-field">State
                   <input id="deliveryState" name="state" autocomplete="address-level1" maxlength="100" required />
@@ -77,7 +80,7 @@
                 <label class="checkout-choice"><input type="radio" name="deliveryMethod" value="Home Delivery" checked required /><span class="choice-icon"><i class="fa-solid fa-truck" aria-hidden="true"></i></span><span><strong>Home Delivery</strong><small>Deliver to the address above</small></span></label>
                 <label class="checkout-choice"><input type="radio" name="deliveryMethod" value="Store Pickup" required /><span class="choice-icon"><i class="fa-solid fa-store" aria-hidden="true"></i></span><span><strong>Store Pickup</strong><small>Collect from ALFA SYSTEMS</small></span></label>
               </div>
-              <p id="selectedDeliveryText" class="selected-choice-note">Selected: Home Delivery</p>
+              <p id="selectedDeliveryText" class="selected-choice-note" aria-live="polite">Selected: Home Delivery</p>
             </section>
 
             <section class="checkout-section">
@@ -97,6 +100,7 @@
               <h2>Order summary</h2>
               <div id="checkoutItems" class="checkout-items"></div>
               <div class="checkout-total-row"><span>Subtotal</span><strong id="checkoutSubtotal">—</strong></div>
+              <div class="checkout-total-row"><span>Delivery charge</span><strong id="checkoutDeliveryCharge">—</strong></div>
               <div class="checkout-total-row checkout-grand-total"><span>Total</span><strong id="checkoutTotal">—</strong></div>
               <p class="checkout-summary-note">Final availability will be confirmed by ALFA SYSTEMS.</p>
               <p id="checkoutPriceWarning" class="checkout-price-warning" hidden></p>
@@ -115,8 +119,11 @@
           <div class="confirmation-details">
             <div><span>Order ID</span><strong id="confirmationOrderId">—</strong></div>
             <div><span>Order date</span><strong id="confirmationDate">—</strong></div>
+            <div><span>Subtotal</span><strong id="confirmationSubtotal">—</strong></div>
+            <div><span>Delivery charge</span><strong id="confirmationDeliveryCharge">—</strong></div>
             <div><span>Total amount</span><strong id="confirmationTotal">—</strong></div>
             <div><span>Payment method</span><strong id="confirmationPayment">—</strong></div>
+            <div><span>Payment status</span><strong id="confirmationPaymentStatus">—</strong></div>
             <div><span>Delivery method</span><strong id="confirmationDelivery">—</strong></div>
             <div><span>Current status</span><strong id="confirmationStatus">Pending</strong></div>
           </div>

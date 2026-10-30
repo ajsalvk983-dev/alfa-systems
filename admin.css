@@ -239,6 +239,10 @@ input:focus, textarea:focus, select:focus, button:focus-visible, a:focus-visible
 .orders-table th { padding: 11px 16px; color: #8490a0; background: #fafbfd; border-top: 1px solid #eff1f4; border-bottom: 1px solid #eff1f4; font-size: 9px; letter-spacing: .09em; white-space: nowrap; }
 .orders-table td { padding: 13px 16px; color: #4b586a; border-bottom: 1px solid #eff1f4; font-size: 12px; vertical-align: middle; }
 .orders-table tbody tr:last-child td { border-bottom: 0; }
+.order-customer-cell strong, .order-customer-cell small, .order-payment-cell strong, .order-payment-cell small { display: block; }
+.order-customer-cell strong, .order-payment-cell strong { color: var(--ink); }
+.order-customer-cell small, .order-payment-cell small { margin-top: 4px; color: var(--muted); font-size: 10px; }
+.orders-table td:nth-child(6), .orders-table td:nth-child(7), .orders-table td:nth-child(8) { white-space: nowrap; }
 .order-number { color: var(--ink); font-weight: 700; white-space: nowrap; }
 .order-products-summary { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .status-pill { display: inline-flex; align-items: center; padding: 5px 8px; color: #59687b; background: #f0f3f7; border-radius: 99px; font-size: 10px; font-weight: 700; white-space: nowrap; }
