@@ -5,6 +5,7 @@ const ORDER_STATUSES = [
   "Pending",
   "Confirmed",
   "Processing",
+  "Ready",
   "Shipped",
   "Out for Delivery",
   "Delivered",
@@ -13,6 +14,7 @@ const ORDER_STATUSES = [
 let adminPw = sessionStorage.getItem(PW_KEY) || "";
 let productList = [];
 let orderList = [];
+let serviceRequestList = [];
 let ordersOffset = 0;
 let totalOrdersCount = 0;
 let editorImages = [];
@@ -29,6 +31,32 @@ function el(tag, text, className) {
   if (text !== undefined && text !== null) node.textContent = text;
   if (className) node.className = className;
   return node;
+}
+
+function confirmAdminAction(message) {
+  return new Promise(function (resolve) {
+    const dialog = document.createElement("dialog");
+    dialog.className = "admin-confirm-dialog";
+    const heading = el("h2", "Please confirm");
+    const detail = el("p", message);
+    const actions = el("div", null, "admin-confirm-actions");
+    const cancel = el("button", "Cancel", "button button-secondary");
+    const accept = el("button", "Delete product", "button button-danger");
+    cancel.type = "button";
+    accept.type = "button";
+    actions.append(cancel, accept);
+    dialog.append(heading, detail, actions);
+    document.body.appendChild(dialog);
+    dialog.addEventListener("close", function () {
+      const confirmed = dialog.returnValue === "confirm";
+      dialog.remove();
+      resolve(confirmed);
+    }, { once: true });
+    cancel.addEventListener("click", function () { dialog.close("cancel"); });
+    accept.addEventListener("click", function () { dialog.close("confirm"); });
+    dialog.showModal();
+    cancel.focus();
+  });
 }
 
 function setLoginMessage(text, isError) {
@@ -349,8 +377,9 @@ function renderOrders() {
     const quantity = items.reduce(function (total, item) { return total + (Number(item.qty) || 0); }, 0);
     const quantityCell = el("td", String(quantity));
     const subtotalCell = el("td", displayOrderAmount(order.subtotal));
-    const deliveryCell = el("td", displayOrderAmount(order.deliveryCharge));
-    const totalCell = el("td", displayOrderAmount(order.totalAmount));
+    const deliveryPending = order.deliveryMethod === "Home Delivery" && !order.deliveryChargeConfirmed;
+    const deliveryCell = el("td", deliveryPending ? "To be confirmed" : displayOrderAmount(order.deliveryCharge));
+    const totalCell = el("td", deliveryPending || order.totalAmount === null ? "To be confirmed" : displayOrderAmount(order.totalAmount));
     const paymentCell = el("td", null, "order-payment-cell");
     paymentCell.appendChild(el("strong", order.paymentMethod || "—"));
     if (order.paymentStatus) paymentCell.appendChild(el("small", order.paymentStatus));
@@ -418,8 +447,18 @@ function openOrderDetails(order) {
   $("orderDetailPayment").textContent = order.paymentMethod || "—";
   $("orderDetailPaymentStatus").textContent = order.paymentStatus || "Pending";
   $("orderDetailSubtotal").textContent = displayOrderAmount(order.subtotal);
-  $("orderDetailDeliveryCharge").textContent = displayOrderAmount(order.deliveryCharge);
-  $("orderDetailTotal").textContent = displayOrderAmount(order.totalAmount);
+  const deliveryPending = order.deliveryMethod === "Home Delivery" && !order.deliveryChargeConfirmed;
+  $("orderDetailDeliveryCharge").textContent = deliveryPending ? "To be confirmed" : displayOrderAmount(order.deliveryCharge);
+  $("orderDetailTotal").textContent = deliveryPending || order.totalAmount === null ? "To be confirmed" : displayOrderAmount(order.totalAmount);
+  $("deliveryChargeInput").value = order.deliveryChargeConfirmed && order.deliveryCharge !== null
+    ? String(order.deliveryCharge)
+    : "";
+  $("deliveryChargeInput").disabled = order.deliveryMethod !== "Home Delivery";
+  $("saveDeliveryCharge").disabled = order.deliveryMethod !== "Home Delivery";
+  $("deliveryChargeMessage").textContent = order.deliveryMethod === "Home Delivery"
+    ? (deliveryPending ? "Delivery charge is not yet confirmed." : "Delivery charge confirmed.")
+    : "Delivery charge is not applicable to store pickup.";
+  $("deliveryChargeMessage").className = "status-text";
   const status = ORDER_STATUSES.includes(order.status) ? order.status : "Pending";
   $("orderDetailStatus").textContent = status;
   $("orderStatusSelect").value = status;
@@ -471,6 +510,49 @@ async function saveOrderStatus(event) {
   } catch (err) {
     $("orderStatusMessage").textContent = err.message || "Could not update order status.";
     $("orderStatusMessage").className = "status-text error";
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function saveDeliveryCharge(event) {
+  event.preventDefault();
+  if (!selectedOrder) return;
+  const input = $("deliveryChargeInput");
+  if (!input.reportValidity()) return;
+  const charge = Number(input.value);
+  if (!Number.isFinite(charge) || charge < 0 || charge > 99999999.99) {
+    $("deliveryChargeMessage").textContent = "Enter a valid non-negative delivery charge.";
+    $("deliveryChargeMessage").className = "status-text error";
+    return;
+  }
+  const button = $("saveDeliveryCharge");
+  button.disabled = true;
+  $("deliveryChargeMessage").textContent = "Saving delivery charge...";
+  $("deliveryChargeMessage").className = "status-text";
+  try {
+    const response = await adminFetch(
+      "/api/admin/orders/" + encodeURIComponent(selectedOrder.id) + "/delivery-charge",
+      { method: "PATCH", body: JSON.stringify({ deliveryCharge: charge }) }
+    );
+    if (!response.ok) throw new Error(await apiErrorMessage(response, "save delivery charge"));
+    const updated = await response.json();
+    Object.assign(selectedOrder, updated);
+    const listedOrder = orderList.find(function (order) { return String(order.id) === String(updated.id); });
+    if (listedOrder) Object.assign(listedOrder, updated);
+    $("orderDetailDeliveryCharge").textContent = displayOrderAmount(updated.deliveryCharge);
+    $("orderDetailTotal").textContent = updated.totalAmount === null
+      ? "To be confirmed"
+      : displayOrderAmount(updated.totalAmount);
+    $("deliveryChargeMessage").textContent = updated.totalAmount === null
+      ? "Delivery charge saved. Product pricing is still to be confirmed."
+      : "Delivery charge and order total confirmed.";
+    $("deliveryChargeMessage").className = "status-text";
+    renderOrders();
+    setGlobalMessage("Delivery charge saved for order #" + updated.id + ".");
+  } catch (error) {
+    $("deliveryChargeMessage").textContent = error.message || "Could not save delivery charge.";
+    $("deliveryChargeMessage").className = "status-text error";
   } finally {
     button.disabled = false;
   }
@@ -684,7 +766,7 @@ async function saveProduct(event) {
 }
 
 async function deleteProduct(product) {
-  if (!window.confirm('Delete "' + (product.name || "this product") + '"? This cannot be undone.')) return;
+  if (!await confirmAdminAction('Delete "' + (product.name || "this product") + '"? This cannot be undone.')) return;
   try {
     const res = await adminFetch("/api/admin/products/" + encodeURIComponent(product.id), { method: "DELETE" });
     if (!res.ok) throw new Error(await apiErrorMessage(res, "delete this product"));
@@ -754,25 +836,116 @@ function addImageUrl() {
   }
 }
 
+const SERVICE_REQUEST_STATUSES = ["New", "Contacted", "Scheduled", "Completed", "Cancelled"];
+
+async function loadServiceRequests() {
+  const state = $("serviceRequestsState");
+  const list = $("serviceRequestsList");
+  state.hidden = false;
+  state.className = "panel-state";
+  state.textContent = "Loading service requests...";
+  list.replaceChildren();
+  try {
+    const response = await adminFetch("/api/admin/service-requests");
+    if (!response.ok) throw new Error(await apiErrorMessage(response, "load service requests"));
+    const requests = await response.json();
+    if (!Array.isArray(requests)) throw new Error("The service request API returned an invalid response.");
+    serviceRequestList = requests;
+    renderServiceRequests();
+  } catch (error) {
+    state.className = "panel-state error";
+    state.textContent = (error.message || "Could not load service requests.") + " ";
+    const retry = el("button", "Retry", "text-button");
+    retry.type = "button";
+    retry.addEventListener("click", loadServiceRequests);
+    state.appendChild(retry);
+  }
+}
+
+function renderServiceRequests() {
+  const state = $("serviceRequestsState");
+  const list = $("serviceRequestsList");
+  list.replaceChildren();
+  if (!serviceRequestList.length) {
+    state.className = "panel-state";
+    state.textContent = "No service requests have been received yet.";
+    state.hidden = false;
+    return;
+  }
+  state.hidden = true;
+  serviceRequestList.forEach(function (request) {
+    const card = el("article", null, "service-request-card");
+    const top = el("div", null, "service-request-head");
+    const identity = el("div");
+    identity.append(el("strong", request.serviceType || "Service request"), el("small", "Request #" + request.id + " · " + formatOrderDate(request.createdAt)));
+    const status = el("span", request.status || "New", "status-pill " + orderStatusClass(request.status || "New"));
+    top.append(identity, status);
+    card.appendChild(top);
+    const contact = el("div", null, "service-request-contact");
+    contact.append(el("strong", request.customerName || "—"), el("span", request.phone || "—"));
+    if (request.email) contact.appendChild(el("span", request.email));
+    card.appendChild(contact);
+    card.appendChild(el("p", request.message || "", "service-request-message"));
+    const controls = el("div", null, "service-request-controls");
+    const select = document.createElement("select");
+    select.setAttribute("aria-label", "Status for service request " + request.id);
+    SERVICE_REQUEST_STATUSES.forEach(function (value) {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = value;
+      select.appendChild(option);
+    });
+    select.value = SERVICE_REQUEST_STATUSES.includes(request.status) ? request.status : "New";
+    const save = el("button", "Update status", "button button-secondary");
+    save.type = "button";
+    save.addEventListener("click", async function () {
+      const previousText = save.textContent;
+      save.disabled = true;
+      save.textContent = "Saving…";
+      try {
+        const response = await adminFetch("/api/admin/service-requests/" + encodeURIComponent(request.id) + "/status", {
+          method: "PATCH",
+          body: JSON.stringify({ status: select.value }),
+        });
+        if (!response.ok) throw new Error(await apiErrorMessage(response, "update service request"));
+        request.status = select.value;
+        setGlobalMessage("Service request #" + request.id + " updated.");
+        renderServiceRequests();
+      } catch (error) {
+        setGlobalMessage(error.message || "Could not update service request.", true);
+        save.disabled = false;
+        save.textContent = previousText;
+      }
+    });
+    controls.append(select, save);
+    card.appendChild(controls);
+    list.appendChild(card);
+  });
+}
+
 function switchView(view) {
   const dashboard = view === "dashboard";
   const catalogue = view === "catalogue";
   const orders = view === "orders";
+  const serviceRequests = view === "service-requests";
   $("dashboardView").hidden = !dashboard;
   $("catalogueView").hidden = !catalogue;
   $("ordersView").hidden = !orders;
-  $("pageTitle").textContent = dashboard ? "Overview" : orders ? "Orders" : "Products";
+  $("serviceRequestsView").hidden = !serviceRequests;
+  $("pageTitle").textContent = dashboard ? "Overview" : orders ? "Orders" : serviceRequests ? "Service requests" : "Products";
   $("addProductTop").hidden = !catalogue;
   document.querySelectorAll(".nav-link").forEach(function (link) {
     link.classList.toggle("active", link.dataset.view === view);
   });
   if (dashboard && ordersOffset !== 0) loadOrders(0);
+  if (serviceRequests) loadServiceRequests();
 }
 
 $("loginForm").addEventListener("submit", login);
 $("logoutBtn").addEventListener("click", function () { showLogin(""); });
 $("searchInput").addEventListener("input", renderProducts);
 $("refreshOrders").addEventListener("click", function () { loadOrders(); });
+$("refreshServiceRequests").addEventListener("click", loadServiceRequests);
 $("previousOrdersPage").addEventListener("click", function () {
   loadOrders(Math.max(0, ordersOffset - 50));
 });
@@ -788,6 +961,7 @@ $("cancelEditor").addEventListener("click", closeEditor);
 $("closeOrderModal").addEventListener("click", closeOrderDetails);
 $("cancelOrderModal").addEventListener("click", closeOrderDetails);
 $("orderStatusForm").addEventListener("submit", saveOrderStatus);
+$("deliveryChargeForm").addEventListener("submit", saveDeliveryCharge);
 $("orderModal").addEventListener("click", function (event) {
   if (event.target === $("orderModal")) closeOrderDetails();
 });

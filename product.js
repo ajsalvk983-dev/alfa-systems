@@ -62,7 +62,7 @@ function renderRelated(p) {
 if (!product) {
   box.innerHTML =
     '<div class="pd-missing"><h3>Product not found</h3>' +
-    '<a href="alfa.html#products" class="btn btn-primary">Back to products</a></div>';
+    '<a href="products.html" class="btn btn-primary">Back to products</a></div>';
 } else {
   const images = product.images && product.images.length ? product.images : [product.image];
   const categoryLabel = CATEGORY_LABELS[product.category] || "Products";
@@ -105,7 +105,7 @@ if (!product) {
   box.innerHTML =
     '<nav class="pd-crumbs" aria-label="Breadcrumb">' +
     '<a href="alfa.html">Home</a><span>/</span>' +
-    '<a href="alfa.html#products">' + esc(categoryLabel) + "</a><span>/</span>" +
+    '<a href="products.html?category=' + encodeURIComponent(product.category || "") + '">' + esc(categoryLabel) + "</a><span>/</span>" +
     "<b>" + esc(product.name) + "</b></nav>" +
 
     '<div class="pd-main">' +
@@ -125,7 +125,7 @@ if (!product) {
             (oldPrice !== null ? "<s>" + formatPrice(oldPrice) + "</s> " : "") +
             (currentPrice === null ? "Price on request" : formatPrice(currentPrice)) +
           "</strong>" +
-          "<small>" + esc(product.priceNote || "Message us on WhatsApp for today's price and stock.") + "</small>" +
+          "<small>" + esc(product.priceNote || "Price and availability will be confirmed by ALFA SYSTEMS.") + "</small>" +
         "</div>" +
 
         '<div class="pd-buy">' +
@@ -135,14 +135,15 @@ if (!product) {
             '<button type="button" onclick="changeDetailQty(1)" aria-label="Increase quantity">+</button>' +
           "</div>" +
           '<div class="pd-actions">' +
-            '<button type="button" class="pd-btn pd-btn-solid" onclick="buyNow()"><i class="fa-brands fa-whatsapp"></i> Buy now</button>' +
+            '<button type="button" class="pd-btn pd-btn-solid" onclick="buyNow()"><i class="fa-solid fa-arrow-right"></i> Buy now</button>' +
             '<button type="button" class="pd-btn pd-btn-outline" onclick="addDetailToCart()">Add to cart</button>' +
           "</div>" +
         "</div>" +
 
         '<div class="pd-notes">' +
-          '<div class="pd-note"><i class="fa-solid fa-store"></i><div><b>Best for</b><span>' + esc(hasValue(product.usedFor) ? product.usedFor : "Shops and small businesses") + "</span></div></div>" +
-          '<div class="pd-note"><i class="fa-brands fa-whatsapp"></i><div><b>Not sure which model?</b><span>Tell us what you weigh and we will suggest the right scale.</span></div></div>' +
+          (hasValue(product.usedFor) ? '<div class="pd-note"><i class="fa-solid fa-store"></i><div><b>Used for</b><span>' + esc(product.usedFor) + "</span></div></div>" : "") +
+          '<div class="pd-note"><i class="fa-solid fa-truck"></i><div><b>Delivery</b><span>Delivery charges and arrangements are confirmed based on product and location.</span></div></div>' +
+          '<div class="pd-note"><i class="fa-solid fa-headset"></i><div><b>Need product or service support?</b><span><a href="services.html">Request a service</a> or <a href="contact.html">contact ALFA SYSTEMS</a>.</span></div></div>' +
         "</div>" +
       "</div>" +
     "</div>" +
@@ -196,9 +197,6 @@ function addDetailToCart() {
 }
 
 function buyNow() {
-  const message =
-    "Hello, I would like to order:\n" +
-    product.name + " x " + detailQty + "\n" +
-    product.image;
-  window.open("https://wa.me/" + Whatsapp_nmbr + "?text=" + encodeURIComponent(message), "_blank");
+  addDetailToCart();
+  window.location.href = "checkout.html";
 }

@@ -77,6 +77,33 @@ function showToast(message) {
   }, 1800);
 }
 
+function confirmAction(message, onConfirm) {
+  const dialog = document.createElement("div");
+  dialog.className = "site-confirm-backdrop";
+  dialog.innerHTML =
+    '<section class="site-confirm" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">' +
+    "<h2 id=\"confirmTitle\">Please confirm</h2>" +
+    '<p class="site-confirm-message"></p>' +
+    '<div class="site-confirm-actions"><button type="button" class="site-confirm-cancel">Cancel</button><button type="button" class="site-confirm-accept">Continue</button></div>' +
+    "</section>";
+  dialog.querySelector(".site-confirm-message").textContent = message;
+  document.body.appendChild(dialog);
+  const cancel = dialog.querySelector(".site-confirm-cancel");
+  const accept = dialog.querySelector(".site-confirm-accept");
+  function close() {
+    dialog.remove();
+  }
+  cancel.addEventListener("click", close);
+  accept.addEventListener("click", function () {
+    close();
+    onConfirm();
+  });
+  dialog.addEventListener("click", function (event) {
+    if (event.target === dialog) close();
+  });
+  cancel.focus();
+}
+
 function updateBadge() {
   const badge = document.getElementById("cartCount");
   if (!badge) return;
@@ -173,6 +200,18 @@ function addToCart(btn, e) {
 
   save(CART_KEY, cart);
   updateBadge();
+  if (btn) {
+    const originalText = btn.dataset.originalText || btn.textContent;
+    btn.dataset.originalText = originalText;
+    btn.textContent = "✓ Added";
+    btn.classList.add("added");
+    btn.disabled = true;
+    setTimeout(function () {
+      btn.textContent = originalText;
+      btn.classList.remove("added");
+      btn.disabled = false;
+    }, 1100);
+  }
   showToast(name + " added to cart");
 }
 
@@ -260,7 +299,7 @@ function renderCart() {
       '<i class="fa-solid fa-cart-shopping"></i>' +
       "<h2>Your cart is empty</h2>" +
       "<p>You haven't added any products yet. Explore our weighing and business equipment to get started.</p>" +
-      '<a href="alfa.html#products" class="btn btn-primary">Browse products</a>' +
+      '<a href="products.html" class="btn btn-primary">Browse products</a>' +
       "</div>";
     summary.innerHTML = "";
     return;
@@ -335,12 +374,11 @@ function renderCart() {
     '<div class="cart-summary-row"><span>Subtotal</span><strong>' + totalLabel + "</strong></div>" +
     '<div class="cart-summary-row cart-summary-total"><span>Total</span><strong>' + totalLabel + "</strong></div>" +
     (itemsWithoutPrice
-      ? '<p class="cart-summary-note">+' + itemsWithoutPrice + (itemsWithoutPrice === 1 ? " product has" : " products have") + ' no fixed price. Final pricing will be confirmed through WhatsApp.</p>'
-      : '<p class="cart-summary-note">Final availability will be confirmed through WhatsApp.</p>') +
+      ? '<p class="cart-summary-note">' + itemsWithoutPrice + (itemsWithoutPrice === 1 ? " product has" : " products have") + ' no fixed price. The team will confirm the final price.</p>'
+      : '<p class="cart-summary-note">Delivery charges are confirmed based on your location and order.</p>') +
     '<div class="cart-actions">' +
     '<a href="checkout.html" class="btn btn-primary checkout-link"><i class="fa-solid fa-lock" aria-hidden="true"></i> Proceed to checkout</a>' +
-    '<button type="button" class="btn btn-success" data-cart-action="order"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> Order via WhatsApp</button>' +
-    '<a href="alfa.html#products" class="cart-continue"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Continue shopping</a>' +
+    '<a href="products.html" class="cart-continue"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Continue shopping</a>' +
     '<button type="button" class="cart-clear" data-cart-action="clear">Clear cart</button>' +
     "</div>" +
     "</div>";
@@ -391,10 +429,11 @@ function removeFromCart(i) {
 }
 
 function clearCart() {
-  if (!confirm("Remove all items from the cart?")) return;
-  save(CART_KEY, []);
-  updateBadge();
-  renderCart();
+  confirmAction("Remove all items from your cart?", function () {
+    save(CART_KEY, []);
+    updateBadge();
+    renderCart();
+  });
 }
 
 function sendOrderToServer(cart) {
@@ -450,7 +489,7 @@ function renderOrders() {
       '<div class="empty-state">' +
       '<i class="fa-solid fa-box-open"></i>' +
       "<p>No orders yet</p>" +
-      '<a href="alfa.html#products" class="btn btn-primary">Browse products</a>' +
+      '<a href="products.html" class="btn btn-primary">Browse products</a>' +
       "</div>";
     actions.innerHTML = "";
     return;
@@ -518,9 +557,10 @@ function deleteOrder(i) {
 }
 
 function clearOrders() {
-  if (!confirm("Delete all order history?")) return;
-  save(ORDERS_KEY, []);
-  renderOrders();
+  confirmAction("Delete all locally saved order history?", function () {
+    save(ORDERS_KEY, []);
+    renderOrders();
+  });
 }
 
 function detailOfProduct(card) {
@@ -554,10 +594,13 @@ function setupSearchDropdown() {
   panel.hidden = true;
   host.appendChild(panel);
 
-  function goToResults() {
+  function goToResults(categoryValue) {
     panel.hidden = true;
-    const section = document.getElementById("products");
-    if (section) section.scrollIntoView({ behavior: "smooth" });
+    const query = input.value.trim();
+    const params = new URLSearchParams();
+    if (categoryValue) params.set("category", categoryValue);
+    else if (query) params.set("q", query);
+    window.location.href = "products.html" + (params.toString() ? "?" + params.toString() : "");
   }
 
   function render() {
@@ -624,16 +667,12 @@ function setupSearchDropdown() {
     const sugg = e.target.closest(".search-sugg");
     if (sugg) {
       if (sugg.dataset.type === "chip") {
-        input.value = "";
-        searchText = "";
-        const chip = document.querySelector('.chip[data-filter="' + sugg.dataset.value + '"]');
-        if (chip) chip.click();
+        goToResults(sugg.dataset.value);
       } else {
         input.value = sugg.dataset.value;
         searchText = input.value.trim().toLowerCase();
-        applyFilters();
+        goToResults();
       }
-      goToResults();
       return;
     }
     if (e.target.closest(".search-all")) goToResults();
@@ -654,35 +693,42 @@ function setupSearchDropdown() {
   });
 }
 
-// home page cards are built from products.js, so the data lives in one place
+function createProductCard(p) {
+  const currentPrice = getNumericPrice(p.price);
+  const oldPrice = getNumericPrice(p.oldPrice);
+  const price = currentPrice !== null
+    ? '<span class="card-price">' + (oldPrice !== null ? "<s>" + formatPrice(oldPrice) + "</s> " : "") + formatPrice(currentPrice) + "</span>"
+    : '<span class="card-price card-price-ask">Price on request</span>';
+  const facts = [];
+  if (p.capacity && String(p.capacity).indexOf("XX") === -1) facts.push(esc(p.capacity) + " capacity");
+  if (p.accuracy && String(p.accuracy).indexOf("XX") === -1) facts.push(esc(p.accuracy) + " accuracy");
+  const specs = facts.length
+    ? '<div class="card-specs">' + facts.map(function (fact) { return "<span>" + fact + "</span>"; }).join("") + "</div>"
+    : "";
+  const searchText = [p.description, p.brand, p.usedFor, p.category, p.capacity, p.accuracy].join(" ");
+  const card = document.createElement("article");
+  card.className = "alfa-card-home";
+  card.dataset.id = p.id || "";
+  card.dataset.category = p.category || "";
+  card.innerHTML =
+    '<div class="card-img-wrap"><img src="' + esc(cld(p.image, 500)) + '" class="card-img-top" alt="' + esc(p.name || "Product image") + '" loading="lazy" /></div>' +
+    '<div class="card-body">' +
+    '<p class="card-brand">' + esc(p.brand || "ALFA SYSTEMS") + "</p>" +
+    '<div class="card-row"><h2 class="card-title"><a href="product.html?id=' + encodeURIComponent(p.id) + '">' + esc(p.name || "Product") + "</a></h2>" + price + "</div>" +
+    '<p class="card-sub">' + esc(p.usedFor || "") + "</p>" + specs +
+    '<p class="card-text">' + esc(searchText) + "</p>" +
+    '<div class="card-actions"><a class="card-view-link" href="product.html?id=' + encodeURIComponent(p.id) + '">View Details</a>' +
+    '<button class="btn btn-primary" type="button" onclick="addToCart(this, event)">Add to Cart</button></div></div>';
+  return card;
+}
+
 function renderProductGrid() {
   const grid = document.getElementById("productGrid");
   if (!grid || typeof products === "undefined") return;
-
-  const html = products
-    .map(function (p) {
-      const currentPrice = getNumericPrice(p.price);
-      const oldPrice = getNumericPrice(p.oldPrice);
-      const price = currentPrice !== null
-        ? '<span class="card-price">' + (oldPrice !== null ? "<s>" + formatPrice(oldPrice) + "</s> " : "") + formatPrice(currentPrice) + "</span>"
-        : '<span class="card-price card-price-ask">Ask price</span>';
-      // .card-text stays in the card (hidden) so the search box can still match brand, use and description
-      const searchText = [p.description, p.brand, p.usedFor].join(" ");
-      return (
-        '<div class="alfa-card-home" data-id="' + esc(p.id) + '" data-category="' + esc(p.category) + '">' +
-        '<div class="card-img-wrap"><img src="' + esc(cld(p.image, 500)) + '" class="card-img-top" alt="' + esc(p.name) + '" loading="lazy" /></div>' +
-        '<div class="card-body">' +
-        '<div class="card-row"><h5 class="card-title"><a href="product.html?id=' + encodeURIComponent(p.id) + '">' + esc(p.name) + "</a></h5>" + price + "</div>" +
-        '<p class="card-sub">' + esc(p.usedFor || "") + "</p>" +
-        '<p class="card-text">' + esc(searchText) + "</p>" +
-        '<div class="card-actions">' +
-        '<button class="btn btn-primary" onclick="addToCart(this, event)">Add to Cart</button>' +
-        "</div></div></div>"
-      );
-    })
-    .join("");
-
-  grid.insertAdjacentHTML("afterbegin", html);
+  const featuredLimit = Number(grid.dataset.featuredLimit) || 6;
+  products.slice(0, featuredLimit).forEach(function (product) {
+    grid.appendChild(createProductCard(product));
+  });
 }
 
 renderProductGrid();

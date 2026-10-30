@@ -10,18 +10,21 @@
     <link rel="stylesheet" href="pages.css" />
     <link rel="stylesheet" href="product.css" />
     <link rel="stylesheet" href="responsive.css" />
+    <link rel="stylesheet" href="site.css" />
     <link href="https://fonts.googleapis.com/css2?family=Manjari:wght@400;700&family=Poppins:wght@800&display=swap" rel="stylesheet" />
   </head>
   <body>
     <div class="main-content">
       <nav class="navbar navbar-green">
-        <div class="menu-btn" id="menuBtn"><i class="fa-solid fa-bars"></i></div>
+        <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu" aria-controls="sidebar"><i class="fa-solid fa-bars" aria-hidden="true"></i></button>
         <a class="navbar-brand" href="alfa.html">
-          <img src="https://res.cloudinary.com/ddng8ksv6/image/upload/v1791894089/image-removebg-preview_mbsics.png" width="30" height="30" alt="" />
+          <img src="https://res.cloudinary.com/ddng8ksv6/image/upload/v1791894089/image-removebg-preview_mbsics.png" alt="ALFA SYSTEMS" />
         </a>
-        <span class="nav-title">Product Details</span>
+        <div class="nav-links"><a href="alfa.html">Home</a><a href="products.html" aria-current="page">Products</a><a href="services.html">Services</a><a href="orders.html">Orders</a></div>
+        <div class="yt-search"><input class="search" type="search" placeholder="Search products" aria-label="Search products" autocomplete="off" /><button class="search-icon" type="button" aria-label="Search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></button></div>
         <a href="cart.html" class="cart-link" aria-label="Cart">
           <i class="fa-solid fa-cart-shopping"></i>
+          <span class="cart-text">Cart</span>
           <span class="cart-count" id="cartCount" hidden>0</span>
         </a>
       </nav>
@@ -38,9 +41,11 @@
       </div>
       <nav>
         <a href="alfa.html">Home</a>
-        <a href="alfa.html#products">My Products</a>
+        <a href="products.html">Products</a>
         <a href="cart.html">My Cart</a>
         <a href="orders.html">My Orders</a>
+        <a href="services.html">Services</a>
+        <a href="contact.html">Contact</a>
       </nav>
     </aside>
 

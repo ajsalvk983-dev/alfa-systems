@@ -10,13 +10,16 @@
     <link rel="stylesheet" href="pages.css" />
     <link rel="stylesheet" href="responsive.css" />
     <link rel="stylesheet" href="checkout.css" />
+    <link rel="stylesheet" href="site.css" />
   </head>
   <body>
     <div class="main-content">
       <nav class="navbar navbar-green">
-        <div class="menu-btn" id="menuBtn"><i class="fa-solid fa-bars"></i></div>
+        <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu" aria-controls="sidebar"><i class="fa-solid fa-bars" aria-hidden="true"></i></button>
         <a class="navbar-brand" href="alfa.html"><img src="https://res.cloudinary.com/ddng8ksv6/image/upload/v1791894089/image-removebg-preview_mbsics.png" width="30" height="30" alt="ALFA SYSTEMS" /></a>
         <span class="nav-title">Secure checkout</span>
+        <div class="nav-links"><a href="alfa.html">Home</a><a href="products.html">Products</a><a href="services.html">Services</a><a href="orders.html">Orders</a></div>
+        <div class="yt-search"><input class="search" type="search" placeholder="Search products" aria-label="Search products" autocomplete="off" /><button class="search-icon" type="button" aria-label="Search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></button></div>
         <a href="cart.html" class="cart-link" aria-label="Return to cart"><i class="fa-solid fa-cart-shopping"></i><span class="cart-count" id="cartCount" hidden>0</span></a>
       </nav>
 
@@ -27,7 +30,7 @@
           <i class="fa-solid fa-cart-shopping" aria-hidden="true"></i>
           <h1>Your cart is empty</h1>
           <p>Add products to your cart before checking out.</p>
-          <a href="alfa.html#products" class="btn btn-primary">Browse products</a>
+          <a href="products.html" class="btn btn-primary">Browse products</a>
         </section>
 
         <form id="checkoutForm" class="checkout-layout" hidden novalidate>
@@ -56,7 +59,7 @@
             <section class="checkout-section">
               <div class="checkout-section-heading"><span>02</span><div><h2>Delivery details</h2><p>Enter the address for this order.</p></div></div>
               <div class="checkout-fields">
-                <label class="checkout-field checkout-span-2">Address
+                <label class="checkout-field checkout-span-2">Street address
                   <textarea id="deliveryAddress" name="address" autocomplete="street-address" maxlength="255" required></textarea>
                 </label>
                 <label class="checkout-field">City
@@ -71,13 +74,16 @@
                 <label class="checkout-field">PIN code
                   <input id="deliveryPincode" name="pincode" inputmode="numeric" autocomplete="postal-code" pattern="[0-9]{6}" maxlength="6" placeholder="6-digit PIN code" required />
                 </label>
+                <label class="checkout-field checkout-span-2">Additional delivery note <span class="optional-label">Optional</span>
+                  <textarea id="deliveryNote" name="note" maxlength="500" placeholder="Landmark or delivery instructions"></textarea>
+                </label>
               </div>
             </section>
 
             <section class="checkout-section">
               <div class="checkout-section-heading"><span>03</span><div><h2>Delivery method</h2><p>Choose how you would like to receive your order.</p></div></div>
               <div class="checkout-choice-grid">
-                <label class="checkout-choice"><input type="radio" name="deliveryMethod" value="Home Delivery" checked required /><span class="choice-icon"><i class="fa-solid fa-truck" aria-hidden="true"></i></span><span><strong>Home Delivery</strong><small>Deliver to the address above</small></span></label>
+                <label class="checkout-choice"><input type="radio" name="deliveryMethod" value="Home Delivery" checked required /><span class="choice-icon"><i class="fa-solid fa-truck" aria-hidden="true"></i></span><span><strong>Home Delivery</strong><small>Delivery charge is confirmed based on location and product</small></span></label>
                 <label class="checkout-choice"><input type="radio" name="deliveryMethod" value="Store Pickup" required /><span class="choice-icon"><i class="fa-solid fa-store" aria-hidden="true"></i></span><span><strong>Store Pickup</strong><small>Collect from ALFA SYSTEMS</small></span></label>
               </div>
               <p id="selectedDeliveryText" class="selected-choice-note" aria-live="polite">Selected: Home Delivery</p>
@@ -86,12 +92,9 @@
             <section class="checkout-section">
               <div class="checkout-section-heading"><span>04</span><div><h2>Payment method</h2><p>Select a preferred payment method. This does not process a payment.</p></div></div>
               <div class="checkout-choice-grid payment-choices">
-                <label class="checkout-choice"><input type="radio" name="paymentMethod" value="Cash on Delivery" checked required /><span class="choice-icon"><i class="fa-solid fa-money-bill-wave" aria-hidden="true"></i></span><span><strong>Cash on Delivery</strong><small>Payment is not collected now</small></span></label>
-                <label class="checkout-choice"><input type="radio" name="paymentMethod" value="UPI" required /><span class="choice-icon"><i class="fa-solid fa-mobile-screen-button" aria-hidden="true"></i></span><span><strong>UPI</strong><small>Preference only; no payment taken</small></span></label>
-                <label class="checkout-choice"><input type="radio" name="paymentMethod" value="Card" required /><span class="choice-icon"><i class="fa-regular fa-credit-card" aria-hidden="true"></i></span><span><strong>Card</strong><small>Preference only; no payment taken</small></span></label>
-                <label class="checkout-choice"><input type="radio" name="paymentMethod" value="Net Banking" required /><span class="choice-icon"><i class="fa-solid fa-building-columns" aria-hidden="true"></i></span><span><strong>Net Banking</strong><small>Preference only; no payment taken</small></span></label>
+                <label class="checkout-choice"><input type="radio" name="paymentMethod" value="Cash on Delivery" checked required /><span class="choice-icon"><i class="fa-solid fa-money-bill-wave" aria-hidden="true"></i></span><span><strong>Pay after confirmation / COD</strong><small>No payment is collected when you place the order.</small></span></label>
               </div>
-              <p class="payment-disclaimer">Online payment processing is not available in this checkout. Selecting UPI, Card, or Net Banking records your preference only; no money will be charged or marked as received.</p>
+              <p class="payment-disclaimer">Our team will review your order and confirm product availability, delivery charges and the final amount before payment.</p>
             </section>
           </div>
 
@@ -99,10 +102,10 @@
             <div class="checkout-summary-card">
               <h2>Order summary</h2>
               <div id="checkoutItems" class="checkout-items"></div>
-              <div class="checkout-total-row"><span>Subtotal</span><strong id="checkoutSubtotal">—</strong></div>
-              <div class="checkout-total-row"><span>Delivery charge</span><strong id="checkoutDeliveryCharge">—</strong></div>
-              <div class="checkout-total-row checkout-grand-total"><span>Total</span><strong id="checkoutTotal">—</strong></div>
-              <p class="checkout-summary-note">Final availability will be confirmed by ALFA SYSTEMS.</p>
+              <div class="checkout-total-row"><span>Product subtotal</span><strong id="checkoutSubtotal">—</strong></div>
+              <div class="checkout-total-row"><span>Delivery charge</span><strong id="checkoutDeliveryCharge">To be confirmed</strong></div>
+              <div class="checkout-total-row checkout-grand-total"><span>Product subtotal</span><strong id="checkoutTotal">—</strong></div>
+              <p class="checkout-summary-note">Final availability and delivery charges will be confirmed by ALFA SYSTEMS.</p>
               <p id="checkoutPriceWarning" class="checkout-price-warning" hidden></p>
               <p id="checkoutMessage" class="checkout-message" role="alert" aria-live="polite"></p>
               <button id="placeOrderButton" class="checkout-submit" type="submit" disabled><span>Place order</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>
@@ -115,27 +118,31 @@
           <div class="confirmation-mark"><i class="fa-solid fa-check" aria-hidden="true"></i></div>
           <p class="checkout-kicker">ALFA SYSTEMS <span>/</span> ORDER CONFIRMATION</p>
           <h1>Order placed successfully</h1>
-          <p class="confirmation-intro">Your order has been recorded. Our team will confirm availability and next steps.</p>
+          <p class="confirmation-intro">Your order has been recorded. Our team will confirm availability, delivery charges and next steps.</p>
           <div class="confirmation-details">
             <div><span>Order ID</span><strong id="confirmationOrderId">—</strong></div>
             <div><span>Order date</span><strong id="confirmationDate">—</strong></div>
             <div><span>Subtotal</span><strong id="confirmationSubtotal">—</strong></div>
             <div><span>Delivery charge</span><strong id="confirmationDeliveryCharge">—</strong></div>
-            <div><span>Total amount</span><strong id="confirmationTotal">—</strong></div>
+            <div><span>Final total</span><strong id="confirmationTotal">—</strong></div>
+            <div><span>Customer</span><strong id="confirmationCustomer">—</strong></div>
+            <div><span>Phone</span><strong id="confirmationPhone">—</strong></div>
+            <div><span>Delivery address</span><strong id="confirmationAddress">—</strong></div>
             <div><span>Payment method</span><strong id="confirmationPayment">—</strong></div>
             <div><span>Payment status</span><strong id="confirmationPaymentStatus">—</strong></div>
             <div><span>Delivery method</span><strong id="confirmationDelivery">—</strong></div>
             <div><span>Current status</span><strong id="confirmationStatus">Pending</strong></div>
           </div>
-          <p class="payment-disclaimer confirmation-payment-note">No online payment was processed or received.</p>
+          <section class="confirmation-items-wrap"><h2>Items in your order</h2><div id="confirmationItems" class="checkout-items"></div></section>
+          <p class="payment-disclaimer confirmation-payment-note">No payment was collected. Your order total and delivery charge will be confirmed by ALFA SYSTEMS before payment.</p>
           <p id="confirmationStorageWarning" class="checkout-message" role="status" hidden></p>
-          <div class="confirmation-actions"><a href="orders.html" class="checkout-action checkout-action-primary">View My Orders</a><a href="alfa.html#products" class="checkout-action checkout-action-secondary">Continue shopping</a></div>
+          <div class="confirmation-actions"><a href="orders.html" class="checkout-action checkout-action-primary">View My Orders</a><a href="products.html" class="checkout-action checkout-action-secondary">Continue shopping</a><a id="confirmationWhatsApp" class="checkout-action checkout-action-secondary" href="https://wa.me/919846500877" target="_blank" rel="noopener">Contact on WhatsApp</a></div>
         </section>
       </main>
     </div>
 
     <div class="overlay" id="overlay"></div>
-    <aside class="sidebar" id="sidebar"><div class="logo"><img src="https://res.cloudinary.com/ddng8ksv6/image/upload/v1791894089/image-removebg-preview_mbsics.png" alt="ALFA SYSTEMS" class="img-fluid" /></div><nav><a href="alfa.html">Home</a><a href="alfa.html#products">My Products</a><a href="cart.html">My Cart</a><a href="orders.html">My Orders</a></nav></aside>
+    <aside class="sidebar" id="sidebar"><div class="logo"><img src="https://res.cloudinary.com/ddng8ksv6/image/upload/v1791894089/image-removebg-preview_mbsics.png" alt="ALFA SYSTEMS" class="img-fluid" /></div><nav><a href="alfa.html">Home</a><a href="products.html">Products</a><a href="services.html">Services</a><a href="cart.html">Cart</a><a href="orders.html">Orders</a><a href="contact.html">Contact</a></nav></aside>
 
     <script src="products.js"></script>
     <script src="api.js"></script>

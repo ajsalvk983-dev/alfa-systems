@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f5f8f6" />
+    <title>Products | ALFA SYSTEMS</title>
+    <script src="https://kit.fontawesome.com/ccc999b0a6.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="alfa.css" />
+    <link rel="stylesheet" href="pages.css" />
+    <link rel="stylesheet" href="responsive.css" />
+    <link rel="stylesheet" href="site.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manjari:wght@400;700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <nav class="navbar navbar-green" aria-label="Main navigation">
+      <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu" aria-controls="sidebar"><i class="fa-solid fa-bars" aria-hidden="true"></i></button>
+      <a class="navbar-brand" href="alfa.html" aria-label="ALFA SYSTEMS home"><img src="https://res.cloudinary.com/ddng8ksv6/image/upload/v1791894089/image-removebg-preview_mbsics.png" alt="ALFA SYSTEMS" /></a>
+      <div class="nav-links"><a href="alfa.html">Home</a><a href="products.html" aria-current="page">Products</a><a href="services.html">Services</a><a href="orders.html">Orders</a></div>
+      <div class="yt-search"><input class="search" type="search" placeholder="Search products" aria-label="Search products" autocomplete="off" /><button class="search-icon" type="button" aria-label="Search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></button></div>
+      <a href="cart.html" class="cart-link" aria-label="My Cart"><i class="fa-solid fa-cart-shopping" aria-hidden="true"></i><span class="cart-text">Cart</span><span class="cart-count" id="cartCount" hidden>0</span></a>
+    </nav>
+    <main class="site-wrap catalog-page">
+      <header class="catalog-heading">
+        <div><p class="site-eyebrow">ALFA SYSTEMS catalogue</p><h1>Weighing &amp; business equipment</h1><p>Search and compare products in the current catalogue. Prices and delivery details are confirmed with our team.</p></div>
+        <a class="site-button-secondary" href="services.html">Need product advice?</a>
+      </header>
+      <section class="catalog-filters" aria-label="Product filters">
+        <label><span class="sr-only">Search catalogue</span><input id="catalogSearch" type="search" placeholder="Search name, brand, use or description" /></label>
+        <label><span class="sr-only">Filter by category</span><select id="categoryFilter"><option value="">All categories</option><option value="platform">Platform Scales</option><option value="counter">Counter Scales</option><option value="label">Label Printing</option><option value="portable">Portable &amp; Precision</option><option value="sealing">Sealing Machines</option></select></label>
+        <label><span class="sr-only">Filter by brand</span><select id="brandFilter"><option value="">All brands</option></select></label>
+        <label><span class="sr-only">Filter by capacity</span><select id="capacityFilter"><option value="">Any capacity</option></select></label>
+        <label><span class="sr-only">Sort products</span><select id="sortFilter"><option value="default">Recommended</option><option value="name">Name A–Z</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option></select></label>
+      </section>
+      <p class="catalog-result-count" id="catalogResultCount" aria-live="polite">Loading products…</p>
+      <section class="catalog-grid" id="catalogGrid" aria-live="polite"></section>
+    </main>
+    <footer class="site-footer"><div class="site-wrap"><div class="footer-grid">
+      <div class="footer-brand"><img src="https://res.cloudinary.com/ddng8ksv6/image/upload/v1791894089/image-removebg-preview_mbsics.png" alt="ALFA SYSTEMS" /><p>Weighing solutions and professional service support from Thrissur, Kerala.</p></div>
+      <div class="footer-col"><h2>Explore</h2><a href="alfa.html">Home</a><a href="services.html">Services</a><a href="orders.html">Orders</a></div>
+      <div class="footer-col"><h2>Contact</h2><a href="tel:+919846500877">9846500877</a><a href="https://wa.me/919846500877" target="_blank" rel="noopener">WhatsApp</a><a href="mailto:kunjalanali35@gmail.com">Email ALFA SYSTEMS</a></div>
+      <div class="footer-col"><h2>Location</h2><address>Palikkunnu, P.O. Pady,<br />Kodaly, Thrissur, Kerala</address></div>
+    </div><div class="footer-bottom"><span>© ALFA SYSTEMS</span><span>Delivery charges are confirmed based on product and location.</span></div></div></footer>
+    <div class="overlay" id="overlay"></div>
+    <aside class="sidebar" id="sidebar" aria-label="Mobile navigation"><div class="logo"><img src="https://res.cloudinary.com/ddng8ksv6/image/upload/v1791894089/image-removebg-preview_mbsics.png" alt="ALFA SYSTEMS" class="img-fluid" /></div><nav><a href="alfa.html">Home</a><a href="products.html">Products</a><a href="services.html">Services</a><a href="orders.html">Orders</a><a href="cart.html">Cart</a><a href="contact.html">Contact</a></nav></aside>
+    <script src="products.js"></script><script src="api.js"></script>
+    <script>loadProducts().then(function () { var core = document.createElement("script"); core.src = "alfa.js"; core.onload = function () { var catalog = document.createElement("script"); catalog.src = "catalog.js"; document.body.appendChild(catalog); }; document.body.appendChild(core); });</script>
+  </body>
+</html>
