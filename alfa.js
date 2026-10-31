@@ -268,10 +268,19 @@ document.querySelectorAll("[data-goto-filter]").forEach(function (link) {
 const heroZone = document.querySelector(".hero-zone");
 const heroCarousel = document.getElementById("carouselExampleIndicators");
 if (heroZone && heroCarousel && window.jQuery) {
+  const slides = Array.from(heroCarousel.querySelectorAll(".carousel-item"));
+  const activeSlide = slides.indexOf(heroCarousel.querySelector(".carousel-item.active"));
+  if (activeSlide >= 0) {
+    heroZone.dataset.slide = activeSlide + 1;
+    if (sidebar) sidebar.dataset.slide = activeSlide + 1;
+  }
   window.jQuery(heroCarousel).on("slide.bs.carousel", function (e) {
     heroZone.dataset.slide = e.to + 1;
     if (sidebar) sidebar.dataset.slide = e.to + 1;
   });
+  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    window.jQuery(heroCarousel).carousel("pause");
+  }
 }
 
 function renderCart() {

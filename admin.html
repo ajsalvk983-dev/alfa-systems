@@ -84,6 +84,19 @@
           <div class="welcome-row">
             <div><h2>Your catalogue</h2><p class="muted">Manage product details, pricing and images.</p></div>
           </div>
+          <section class="panel category-manager">
+            <div class="panel-heading">
+              <div><h2>Product categories</h2><p class="muted">Add a category once and use it across your product listings.</p></div>
+            </div>
+            <form id="categoryForm" class="category-form">
+              <label class="form-field" for="categoryName">New category
+                <input id="categoryName" name="name" maxlength="100" placeholder="e.g. Industrial indicators" required />
+              </label>
+              <button id="addCategory" class="button button-primary" type="submit">Add category</button>
+              <p id="categoryMessage" class="status-text" role="status" aria-live="polite"></p>
+            </form>
+            <div id="categoryList" class="category-list" aria-label="Existing categories"></div>
+          </section>
           <div class="stats-grid">
             <article class="stat-card"><span class="stat-icon">▦</span><div><p>Total products</p><strong id="totalProducts">—</strong></div></article>
             <article class="stat-card"><span class="stat-icon stat-icon-green">₹</span><div><p>Products with pricing</p><strong id="pricedProducts">—</strong></div></article>
@@ -181,9 +194,7 @@
                   <label class="form-field span-2">Product name <input id="productName" name="name" maxlength="150" required /></label>
                   <label class="form-field">Brand <input id="productBrand" name="brand" maxlength="60" /></label>
                   <label class="form-field">Category
-                    <select id="productCategory" name="category">
-                      <option value="">Select category</option><option value="platform">Platform scales</option><option value="counter">Counter scales</option><option value="label">Label printing</option><option value="portable">Portable &amp; precision</option><option value="sealing">Sealing machines</option>
-                    </select>
+                    <select id="productCategory" name="category"><option value="">Select category</option></select>
                   </label>
                   <label class="form-field span-2">Description <textarea id="productDescription" name="description" rows="4" maxlength="2000"></textarea></label>
                   <label class="form-field">Price (₹) <input id="productPrice" name="price" type="text" inputmode="decimal" placeholder="e.g. 12500 or From ₹900" maxlength="80" /></label>

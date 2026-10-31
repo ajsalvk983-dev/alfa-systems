@@ -1,200 +1,16 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap");
-
-/* Home-page product cards, modelled on the Shopcart reference.
-   Linked AFTER alfa.css and pages.css in alfa.html */
-
-@media (min-width: 641px) {
-  .alfa-card-home-container {
-    gap: 28px 22px;
-  }
-}
-
-/* no box around the card: grey photo tile, then text straight on the page */
-.alfa-card-home {
-  position: relative;
-  overflow: visible;
-  padding: 0;
-  background: transparent;
-  border: none;
-  border-radius: 0;
-  box-shadow: none;
-  color: #fff;
-  font-family: "Inter", "Manjari", sans-serif;
-  cursor: pointer;
-}
-
-.alfa-card-home:hover {
-  box-shadow: none;
-  transform: none;
-}
-
-.alfa-card-home .card-img-wrap {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  aspect-ratio: 1 / 1;
-  padding: 22px;
-  background: #f4f5f5;
-  border-radius: 12px;
-  transition: background 0.2s ease;
-}
-
-
-/* multiply: each photo's white background turns into the tile's grey */
-.alfa-card-home .card-img-wrap .card-img-top {
-  width: 100%;
-  height: 100%;
-  background: transparent;
-  border-radius: 0;
-  object-fit: contain;
-  mix-blend-mode: multiply;
-}
-
-.alfa-card-home .card-body {
-  padding: 14px 0 0;
-}
-
-/* name on the left, price on the right */
-.card-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.card-row .card-title {
-  flex: 1;
-  min-width: 0;
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 600;
-  line-height: 1.3;
-  color: #fff;
-}
-
-.card-price {
-  flex-shrink: 0;
-  font-size: 1rem;
-  font-weight: 700;
-  line-height: 1.3;
-  color: #fff;
-}
-
-.card-price sup {
-  top: -0.35em;
-  font-size: 0.6em;
-}
-
-.card-price s {
-  margin-right: 4px;
-  font-size: 0.8em;
-  font-weight: 400;
-  opacity: 0.6;
-}
-
-.card-price-ask {
-  font-size: 0.82rem;
-  font-weight: 400;
-  opacity: 0.7;
-}
-
-.card-sub {
-  margin: 4px 0 14px;
-  overflow: hidden;
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.65);
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-/* kept in the page only so the search box can match it */
-.alfa-card-home .card-text {
-  display: none;
-}
-
-.card-actions {
-  display: flex;
-  margin-top: auto;
-}
-
-.card-body .card-actions .btn {
-  width: auto;
-  height: 38px;
-  margin: 0;
-  padding: 0 22px;
-  border-radius: 999px;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.card-body .card-actions .btn-primary {
-  background: transparent;
-  border: 1.5px solid rgba(255, 255, 255, 0.85);
-  color: #fff;
-}
-
-
-.card-body .card-actions .btn-primary:focus-visible {
-  outline: 3px solid #ffd54f;
-  outline-offset: 2px;
-}
-
-.no-results {
-  grid-column: 1 / -1;
-  text-align: center;
-}
-
-.no-results[hidden] {
-  display: none;
-}
-
-@media (max-width: 640px) {
-  .alfa-card-home .card-img-wrap {
-    padding: 12px;
-    border-radius: 10px;
-  }
-
-  .card-row {
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .card-row .card-title,
-  .card-price {
-    font-size: 0.88rem;
-  }
-
-  .card-sub {
-    margin-bottom: 10px;
-    font-size: 0.74rem;
-  }
-
-  .card-body .card-actions .btn {
-    height: 34px;
-    padding: 0 16px;
-    font-size: 0.78rem;
-  }
-}
-
-
-/* ===== Search dropdown ===== */
-.yt-search { position: relative; }
-
-/* the navbar must sit above the carousel (both are z-index 1 inside .hero-zone) */
-.hero-zone > nav.navbar { z-index: 5; }
-
 .search-panel {
   position: absolute;
   top: calc(100% + 10px);
   left: 0;
   z-index: 50;
   width: min(680px, calc(100vw - 24px));
-  padding: 20px 22px 12px;
-  border-radius: 16px;
+  padding: 18px;
+  border: 1px solid #e3e9e5;
+  border-radius: 10px;
   background: #fff;
   color: #212121;
   text-align: left;
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.18);
 }
 
 .search-panel[hidden] { display: none; }
@@ -202,31 +18,33 @@
 .search-cols {
   display: grid;
   grid-template-columns: 1fr 1.25fr;
-  gap: 24px;
+  gap: 20px;
 }
 
 .search-col h6 {
-  margin: 0 0 12px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #eee;
-  font-size: 1rem;
+  margin: 0 0 10px;
+  padding-bottom: 9px;
+  border-bottom: 1px solid #e9eeeb;
+  color: #294438;
+  font-size: 0.95rem;
   font-weight: 700;
-  color: #0b1437;
 }
 
 .search-sugg {
   display: block;
   width: 100%;
   padding: 7px 0;
-  border: none;
+  border: 0;
   background: transparent;
-  color: #777;
+  color: #617067;
   font-family: inherit;
-  font-size: 0.92rem;
+  font-size: 0.9rem;
   text-align: left;
   cursor: pointer;
 }
-.search-sugg b { color: #161111; }
+
+.search-sugg b { color: #263d30; }
+.search-sugg:hover { color: #104b35; }
 
 .search-product {
   display: flex;
@@ -234,65 +52,61 @@
   gap: 12px;
   margin-bottom: 8px;
   padding: 8px;
-  border-radius: 10px;
-  background: #f3f5f6;
-  color: #212121;
+  border-radius: 7px;
+  background: #f5f8f6;
+  color: #293f32;
   text-decoration: none;
 }
+
+.search-product:hover {
+  color: #104b35;
+  background: #eaf3ee;
+  text-decoration: none;
+}
+
 .search-product img {
   width: 52px;
   height: 52px;
-  flex-shrink: 0;
+  flex: 0 0 auto;
   object-fit: contain;
   mix-blend-mode: multiply;
 }
-.search-product div { display: flex; flex-direction: column; min-width: 0; }
+
+.search-product div { display: flex; min-width: 0; flex-direction: column; }
 .search-product span { font-size: 0.9rem; line-height: 1.25; }
 .search-product b { font-size: 0.9rem; }
 
 .search-foot {
   margin-top: 6px;
   padding-top: 10px;
-  border-top: 1px solid #eee;
+  border-top: 1px solid #e9eeeb;
   text-align: center;
 }
+
 .search-all {
-  border: none;
+  border: 0;
   background: transparent;
-  color: #c0392b;
+  color: #176345;
   font-family: inherit;
   font-size: 0.9rem;
+  font-weight: 700;
   text-decoration: underline;
   cursor: pointer;
 }
 
-.search-empty { margin: 0; padding: 6px 0 10px; color: #777; font-size: 0.9rem; }
+.search-empty { margin: 0; padding: 6px 0 10px; color: #738078; font-size: 0.9rem; }
 
 .search-sugg:focus-visible,
 .search-all:focus-visible,
-.search-product:focus-visible { outline: 3px solid #ffd54f; outline-offset: 2px; }
+.search-product:focus-visible { outline: 3px solid #86bda1; outline-offset: 2px; }
 
-@media (max-width: 768px) {
-  .search-panel {
-    position: fixed;
-    top: 120px;
-    left: 12px;
-    right: 12px;
-    width: auto;
-    max-height: calc(100vh - 90px);
-    overflow-y: auto;
-  }
-  .search-cols { grid-template-columns: 1fr; gap: 14px; }
+.alfa-card-home {
+  position: relative;
+  overflow: visible;
 }
 
-/* ---- grid fills itself: as many 230px+ columns as fit (phones keep alfa.css's 2 columns) ---- */
-@media (min-width: 641px) {
-  .alfa-card-home-container {
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr));
-  }
-}
+.alfa-card-home .card-img-wrap { overflow: hidden; }
 
-/* ---- the whole card is one real link: the title link is stretched over the card ---- */
 .card-row .card-title a,
 .card-row .card-title a:hover {
   color: inherit;
@@ -300,70 +114,34 @@
 }
 
 .card-row .card-title a::after {
-  content: "";
   position: absolute;
   inset: 0;
-  border-radius: 12px;
+  border-radius: 10px;
+  content: "";
 }
 
-.card-row .card-title a:focus-visible {
-  outline: none;
-}
+.card-row .card-title a:focus-visible { outline: none; }
 
 .card-row .card-title a:focus-visible::after {
-  outline: 3px solid #ffd54f;
-  outline-offset: 4px;
+  outline: 3px solid #86bda1;
+  outline-offset: 3px;
 }
 
-/* the button sits above the stretched link so it still works on its own */
 .card-actions {
   position: relative;
   z-index: 2;
 }
 
-/* tap feedback + finger-sized buttons on touch screens */
-.card-body .card-actions .btn-primary:active {
-  background: #fff;
-  color: #0b1437;
-}
-
-@media (pointer: coarse) {
-  .card-body .card-actions .btn {
-    height: 44px;
-  }
-}
-
-/* hover effects only on devices with a mouse, so they do not stick after a tap on phones */
-@media (hover: hover) {
-  .alfa-card-home:hover .card-img-wrap {
-    background: #eaecec;
+@media (max-width: 768px) {
+  .search-panel {
+    position: fixed;
+    top: 120px;
+    right: 12px;
+    left: 12px;
+    width: auto;
+    max-height: calc(100vh - 90px);
+    overflow-y: auto;
   }
 
-  .card-body .card-actions .btn-primary:hover {
-    background: #fff;
-    color: #0b1437;
-  }
-
-  .search-sugg:hover { color: #040676; }
-
-  .search-product:hover { background: #e8ecf5; color: #212121; text-decoration: none; }
-}
-
-/* ---- phones: keep two equal columns, never wider than the screen ----
-   Cards used to clip their own content (overflow: hidden). Now that overflow is visible a long one-line
-   text sets the column's minimum width, so the grid must be told it may shrink (min-width: 0 / minmax(0, 1fr)). */
-.alfa-card-home {
-  min-width: 0;
-}
-
-@media (max-width: 640px) {
-  .alfa-card-home-container {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-.alfa-card-home .card-body .card-actions .btn-primary {
-  flex: 0 0 auto;
-  width: auto;
-  max-width: 100%;
+  .search-cols { grid-template-columns: 1fr; gap: 14px; }
 }

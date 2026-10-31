@@ -10,9 +10,25 @@
   const categoryParam = params.get("category") || "";
   const queryParam = params.get("q") || "";
 
-  if (categoryParam && Array.from(category.options).some(function (option) { return option.value === categoryParam; })) {
-    category.value = categoryParam;
-  }
+  const categoryLabels = {
+    platform: "Platform scales",
+    counter: "Counter scales",
+    label: "Label printing",
+    portable: "Portable & precision",
+    sealing: "Sealing machines",
+  };
+  const categoryValues = Array.from(new Set(products.map(function (product) {
+    return String(product.category || "").trim();
+  }).filter(Boolean))).sort(function (a, b) { return a.localeCompare(b); });
+  categoryValues.forEach(function (value) {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = categoryLabels[value] || value.replace(/[-_]+/g, " ").replace(/\b\w/g, function (letter) {
+      return letter.toUpperCase();
+    });
+    category.appendChild(option);
+  });
+  if (categoryValues.includes(categoryParam)) category.value = categoryParam;
   search.value = queryParam;
 
   const brands = Array.from(new Set(products.map(function (product) {

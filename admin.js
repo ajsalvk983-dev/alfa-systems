@@ -13,6 +13,7 @@ const ORDER_STATUSES = [
 ];
 let adminPw = sessionStorage.getItem(PW_KEY) || "";
 let productList = [];
+let categoryList = [];
 let orderList = [];
 let serviceRequestList = [];
 let ordersOffset = 0;
@@ -140,6 +141,7 @@ async function login(event) {
     setGlobalMessage("");
     switchView("dashboard");
     await Promise.all([loadProducts(), loadOrders(), loadOrderSummary()]);
+    await loadCategories();
   } catch (err) {
     setLoginMessage("Cannot reach the store API. Check your connection and try again.", true);
   } finally {
@@ -148,6 +150,9 @@ async function login(event) {
 }
 
 function categoryLabel(category) {
+  const savedCategory = categoryList.find(function (item) {
+    return item.value === category;
+  });
   const labels = {
     platform: "Platform scales",
     counter: "Counter scales",
@@ -155,7 +160,94 @@ function categoryLabel(category) {
     portable: "Portable & precision",
     sealing: "Sealing machines",
   };
-  return labels[category] || category || "Uncategorised";
+  if (savedCategory && savedCategory.name !== savedCategory.value) return savedCategory.name;
+  return labels[category] || (savedCategory && savedCategory.name) || category || "Uncategorised";
+}
+
+function renderCategorySelect(selectedValue) {
+  const select = $("productCategory");
+  const selected = selectedValue === undefined ? select.value : selectedValue;
+  select.replaceChildren(el("option", "Select category"));
+  select.options[0].value = "";
+  categoryList.forEach(function (category) {
+    const option = el("option", categoryLabel(category.value));
+    option.value = category.value;
+    select.appendChild(option);
+  });
+  if (selected && !categoryList.some(function (category) { return category.value === selected; })) {
+    const legacy = el("option", categoryLabel(selected));
+    legacy.value = selected;
+    select.appendChild(legacy);
+  }
+  select.value = selected || "";
+}
+
+function renderCategoryList() {
+  const list = $("categoryList");
+  list.replaceChildren();
+  if (!categoryList.length) {
+    list.appendChild(el("p", "No categories yet. Add one to start organizing products.", "category-list-empty"));
+    return;
+  }
+  categoryList.forEach(function (category) {
+    list.appendChild(el("span", categoryLabel(category.value), "category-pill"));
+  });
+}
+
+async function loadCategories() {
+  try {
+    const response = await adminFetch("/api/admin/categories");
+    if (!response.ok) throw new Error(await apiErrorMessage(response, "load categories"));
+    const categories = await response.json();
+    if (!Array.isArray(categories) || categories.some(function (category) {
+      return !category || typeof category.value !== "string" || typeof category.name !== "string";
+    })) {
+      throw new Error("The category API returned an invalid response.");
+    }
+    categoryList = categories;
+  } catch (error) {
+    categoryList = Array.from(new Map(productList
+      .map(function (product) { return String(product.category || "").trim(); })
+      .filter(Boolean)
+      .map(function (value) { return [value, { value: value, name: categoryLabel(value) }]; })
+    ).values());
+    setGlobalMessage("Category management is unavailable: " + (error.message || "Could not load categories."), true);
+  }
+  renderCategorySelect();
+  renderCategoryList();
+  renderProducts();
+}
+
+async function addCategory(event) {
+  event.preventDefault();
+  const input = $("categoryName");
+  if (!input.reportValidity()) return;
+  const button = $("addCategory");
+  button.disabled = true;
+  $("categoryMessage").textContent = "Adding category...";
+  $("categoryMessage").className = "status-text";
+  try {
+    const response = await adminFetch("/api/admin/categories", {
+      method: "POST",
+      body: JSON.stringify({ name: input.value.trim() }),
+    });
+    if (!response.ok) throw new Error(await apiErrorMessage(response, "add category"));
+    const category = await response.json();
+    categoryList.push(category);
+    categoryList.sort(function (a, b) { return a.name.localeCompare(b.name); });
+    renderCategorySelect();
+    renderCategoryList();
+    renderProducts();
+    $("categoryForm").reset();
+    $("categoryMessage").textContent = "Category added. It is now available when editing products.";
+    $("categoryMessage").className = "status-text";
+    setGlobalMessage("");
+  } catch (error) {
+    $("categoryMessage").textContent = error.message || "Could not add category.";
+    $("categoryMessage").className = "status-text error";
+  } finally {
+    button.disabled = false;
+  }
 }
 
 function displayPrice(value) {
@@ -657,7 +749,7 @@ function openEditor(product) {
     $("productId").value = product.id || "";
     $("productName").value = product.name || "";
     $("productBrand").value = product.brand || "";
-    $("productCategory").value = product.category || "";
+    renderCategorySelect(product.category || "");
     $("productDescription").value = product.description || "";
     $("productPrice").value = product.price === null || product.price === undefined ? "" : product.price;
     $("productOldPrice").value = product.oldPrice === null || product.oldPrice === undefined ? "" : product.oldPrice;
@@ -977,6 +1069,7 @@ $("editorModal").addEventListener("click", function (event) {
   if (event.target === $("editorModal")) closeEditor();
 });
 $("productForm").addEventListener("submit", saveProduct);
+$("categoryForm").addEventListener("submit", addCategory);
 $("addFeature").addEventListener("click", function () { addDynamicRow("feature", "", ""); });
 $("addSpec").addEventListener("click", function () { addDynamicRow("spec", "", ""); });
 $("imageUpload").addEventListener("change", uploadImages);
@@ -1018,6 +1111,7 @@ async function restoreSession() {
     $("appView").hidden = false;
     switchView("dashboard");
     await Promise.all([loadProducts(), loadOrders(), loadOrderSummary()]);
+    await loadCategories();
   } catch (err) {
     showLogin("");
   }
