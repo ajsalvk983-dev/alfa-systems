@@ -51,6 +51,40 @@ function renderDatabaseOrder(order) {
   head.append(title, status);
   card.appendChild(head);
 
+  const orderStatus = order.status || "Pending";
+  const progressStages = ["Placed", "Confirmed", "Processing", "Dispatched", "Delivered"];
+  const progressStageIndex = {
+    Pending: 0,
+    Confirmed: 1,
+    Processing: 2,
+    Ready: 2,
+    Shipped: 3,
+    "Out for Delivery": 3,
+    Delivered: 4,
+  }[orderStatus];
+  if (orderStatus === "Cancelled") {
+    card.appendChild(myOrderElement("p", "This order was cancelled.", "database-order-cancelled"));
+  } else if (progressStageIndex !== undefined) {
+    const progress = myOrderElement("div", null, "database-order-progress");
+    progress.setAttribute("aria-label", "Order progress: " + orderStatus);
+    const progressTrack = myOrderElement("div", null, "database-order-progress-track");
+    const progressFill = myOrderElement("span", null, "database-order-progress-fill");
+    progressFill.style.width = (progressStageIndex / (progressStages.length - 1) * 100) + "%";
+    progressTrack.appendChild(progressFill);
+    const stages = myOrderElement("ol", null, "database-order-progress-stages");
+    progressStages.forEach(function (stage, index) {
+      const step = myOrderElement("li", stage, "database-order-progress-step");
+      if (index < progressStageIndex) step.classList.add("is-complete");
+      if (index === progressStageIndex) {
+        step.classList.add("is-current");
+        step.setAttribute("aria-current", "step");
+      }
+      stages.appendChild(step);
+    });
+    progress.append(progressTrack, stages);
+    card.appendChild(progress);
+  }
+
   const items = myOrderElement("div", null, "database-order-items");
   (Array.isArray(order.items) ? order.items : []).forEach(function (item) {
     const row = myOrderElement("div", null, "database-order-item");

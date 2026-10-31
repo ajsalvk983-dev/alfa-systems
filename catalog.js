@@ -6,6 +6,7 @@
   const capacity = document.getElementById("capacityFilter");
   const sort = document.getElementById("sortFilter");
   const resultCount = document.getElementById("catalogResultCount");
+  const chips = Array.from(document.querySelectorAll(".chip[data-filter]"));
   const params = new URLSearchParams(window.location.search);
   const categoryParam = params.get("category") || "";
   const queryParam = params.get("q") || "";
@@ -86,6 +87,11 @@
 
   function render() {
     const results = filteredProducts();
+    chips.forEach(function (chip) {
+      const active = (category.value || "all") === chip.dataset.filter;
+      chip.classList.toggle("active", active);
+      chip.setAttribute("aria-pressed", active ? "true" : "false");
+    });
     grid.replaceChildren();
     resultCount.textContent = results.length + (results.length === 1 ? " product" : " products");
     if (!results.length) {
@@ -103,6 +109,12 @@
   [search, category, brand, capacity, sort].forEach(function (control) {
     control.addEventListener("input", render);
     control.addEventListener("change", render);
+  });
+  chips.forEach(function (chip) {
+    chip.addEventListener("click", function () {
+      category.value = chip.dataset.filter === "all" ? "" : chip.dataset.filter;
+      render();
+    });
   });
 
   render();

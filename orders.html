@@ -7,35 +7,33 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous" />
     <script src="https://kit.fontawesome.com/ccc999b0a6.js" crossorigin="anonymous"></script>
 
+    <link rel="stylesheet" href="checkout.css" />
+    <link rel="stylesheet" href="site.css" />
     <link rel="stylesheet" href="alfa.css" />
     <link rel="stylesheet" href="pages.css" />
     <link rel="stylesheet" href="responsive.css" />
-    <link rel="stylesheet" href="checkout.css" />
-    <link rel="stylesheet" href="site.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Manjari:wght@400;700&family=Poppins:wght@800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   </head>
 
   <body>
     <div class="main-content">
 
+      <div class="top-info-bar"><div class="top-info-inner"><a href="tel:+919846500877"><i class="fa-solid fa-phone" aria-hidden="true"></i> 98465 00877</a><a href="https://wa.me/919846500877" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> 98465 00877</a><span class="top-offer">Trusted weighing solutions for shops &amp; industry</span><a class="top-shop-link" href="products.html">Shop Now <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a></div></div>
       <nav class="navbar navbar-green">
-        <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu" aria-controls="sidebar"><i class="fa-solid fa-bars" aria-hidden="true"></i></button>
-        <a class="navbar-brand" href="alfa.html">
-          <img src="https://res.cloudinary.com/ddng8ksv6/image/upload/v1791894089/image-removebg-preview_mbsics.png" alt="ALFA SYSTEMS" />
-        </a>
-        <span class="nav-title">My Orders</span>
-        <div class="nav-links"><a href="alfa.html">Home</a><a href="products.html">Products</a><a href="services.html">Services</a><a href="orders.html" aria-current="page">Orders</a></div>
-        <div class="yt-search"><input class="search" type="search" placeholder="Search products" aria-label="Search products" autocomplete="off" /><button class="search-icon" type="button" aria-label="Search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></button></div>
-        <a href="cart.html" class="cart-link" aria-label="Cart">
-          <i class="fa-solid fa-cart-shopping"></i>
-          <span class="cart-text">Cart</span>
-          <span class="cart-count" id="cartCount" hidden>0</span>
-        </a>
+        <a class="navbar-brand" href="alfa.html" aria-label="ALFA SYSTEMS home" title="ALFA SYSTEMS home"><img src="https://res.cloudinary.com/ddng8ksv6/image/upload/v1791894089/image-removebg-preview_mbsics.png" alt="" /></a>
+        <div class="yt-search"><input class="search" type="search" placeholder="Search products" aria-label="Search products" autocomplete="off" /><button class="search-icon" type="button" aria-label="Search products" title="Search products"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></button></div>
+        <div class="nav-icons" aria-label="Page navigation">
+          <a class="nav-icon" href="alfa.html" aria-label="Home" title="Home"><i class="fa-solid fa-house" aria-hidden="true"></i></a>
+          <a class="nav-icon" href="products.html" aria-label="Products" title="Products"><i class="fa-solid fa-box-open" aria-hidden="true"></i></a>
+          <a class="nav-icon" href="services.html" aria-label="Services" title="Services"><i class="fa-solid fa-screwdriver-wrench" aria-hidden="true"></i></a>
+          <a class="nav-icon" href="orders.html" aria-current="page" aria-label="Orders" title="Orders"><i class="fa-solid fa-receipt" aria-hidden="true"></i></a>
+          <a class="nav-icon cart-link" href="cart.html" aria-label="Cart" title="Cart"><i class="fa-solid fa-cart-shopping" aria-hidden="true"></i><span class="cart-count" id="cartCount" hidden>0</span></a>
+        </div>
       </nav>
 
-      <div class="page-wrap">
+      <div class="page-wrap orders-page">
         <h2 class="page-heading">My Orders</h2>
         <section class="database-orders-section" aria-labelledby="checkoutOrdersTitle">
           <h3 id="checkoutOrdersTitle">Checkout orders</h3>
@@ -47,22 +45,14 @@
         <div id="ordersActions"></div>
       </div>
 
+      <footer class="site-footer"><div class="site-wrap"><div class="footer-grid">
+        <div class="footer-brand"><img src="https://res.cloudinary.com/ddng8ksv6/image/upload/v1791894089/image-removebg-preview_mbsics.png" alt="ALFA SYSTEMS" /><p>Weighing solutions and professional service support from Thrissur, Kerala.</p></div>
+        <div class="footer-col"><h2>Explore</h2><a href="alfa.html">Home</a><a href="products.html">Products</a><a href="services.html">Services</a><a href="orders.html">Orders</a></div>
+        <div class="footer-col"><h2>Contact</h2><a href="tel:+919846500877">9846500877</a><a href="https://wa.me/919846500877" target="_blank" rel="noopener">WhatsApp</a><a href="mailto:kunjalanali35@gmail.com">Email ALFA SYSTEMS</a></div>
+        <div class="footer-col"><h2>Location</h2><address>Palikkunnu, P.O. Pady,<br />Kodaly, Thrissur, Kerala</address></div>
+      </div><div class="footer-bottom"><span>© ALFA SYSTEMS</span><span>Delivery details are confirmed based on product and location.</span></div></div></footer>
     </div>
 
-    <div class="overlay" id="overlay"></div>
-    <aside class="sidebar" id="sidebar">
-      <div class="logo">
-        <img src="https://res.cloudinary.com/ddng8ksv6/image/upload/v1791894089/image-removebg-preview_mbsics.png" alt="Logo" class="img-fluid" />
-      </div>
-      <nav>
-        <a href="alfa.html">Home</a>
-        <a href="products.html">Products</a>
-        <a href="cart.html">My Cart</a>
-        <a href="orders.html">My Orders</a>
-        <a href="services.html">Services</a>
-        <a href="contact.html">Contact</a>
-      </nav>
-    </aside>
 
     <script src="products.js"></script>
     <script src="api.js"></script>

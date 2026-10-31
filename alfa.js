@@ -37,32 +37,6 @@ function cld(url, w) {
   return url.replace("/image/upload/", "/image/upload/f_auto,q_auto,w_" + w + "/");
 }
 
-const menuBtn = document.getElementById("menuBtn");
-const sidebar = document.getElementById("sidebar");
-const overlay = document.getElementById("overlay");
-
-function toggleSidebar() {
-  sidebar.classList.toggle("open");
-  overlay.classList.toggle("show");
-  document.body.classList.toggle("sidebar-open");
-  if (menuBtn) menuBtn.setAttribute("aria-expanded", sidebar.classList.contains("open") ? "true" : "false");
-}
-
-function closeSidebar() {
-  sidebar.classList.remove("open");
-  overlay.classList.remove("show");
-  document.body.classList.remove("sidebar-open");
-  if (menuBtn) menuBtn.setAttribute("aria-expanded", "false");
-}
-
-if (menuBtn) menuBtn.addEventListener("click", toggleSidebar);
-if (overlay) overlay.addEventListener("click", closeSidebar);
-if (sidebar) {
-  sidebar.querySelectorAll("nav a").forEach(function (a) {
-    a.addEventListener("click", closeSidebar);
-  });
-}
-
 function showToast(message) {
   let toast = document.getElementById("toast");
   if (!toast) {
@@ -123,18 +97,29 @@ function getNumericPrice(value) {
   return Number.isFinite(price) && price >= 0 ? price : null;
 }
 
+function getDiscount(product) {
+  if (!product || typeof product.price !== "number" || typeof product.oldPrice !== "number") return null;
+  if (!Number.isFinite(product.price) || !Number.isFinite(product.oldPrice) || product.price < 0 || product.oldPrice <= 0 || product.oldPrice <= product.price) return null;
+  return {
+    amount: product.oldPrice - product.price,
+    percent: Math.round((product.oldPrice - product.price) / product.oldPrice * 100)
+  };
+}
+
 function getSafeQuantity(value) {
   const quantity = Number(value);
   return Number.isFinite(quantity) ? Math.min(Math.max(Math.floor(quantity), 1), 99) : 1;
 }
 
 function cartItemFromProduct(product, quantity) {
+  const numericPrice = getNumericPrice(product.price);
   return {
     id: product.id || "",
     name: product.name || "Product",
     image: product.image || "",
-    price: getNumericPrice(product.price),
-    oldPrice: getNumericPrice(product.oldPrice),
+    price: numericPrice,
+    priceText: numericPrice === null && typeof product.price === "string" ? product.price : "",
+    oldPrice: typeof product.oldPrice === "number" ? getNumericPrice(product.oldPrice) : null,
     brand: product.brand || "",
     category: product.category || "",
     qty: getSafeQuantity(quantity)
@@ -162,9 +147,12 @@ function mergeCatalogueData(item, product) {
   const productPrice = getNumericPrice(product.price);
   item.price = price === null ? productPrice : price;
 
-  const oldPrice = getNumericPrice(item.oldPrice);
-  const productOldPrice = getNumericPrice(product.oldPrice);
-  item.oldPrice = oldPrice === null ? productOldPrice : oldPrice;
+  const oldPrice = typeof item.oldPrice === "number" ? getNumericPrice(item.oldPrice) : null;
+  const productOldPrice = typeof product.oldPrice === "number" ? getNumericPrice(product.oldPrice) : null;
+  item.oldPrice = productOldPrice === null ? null : (oldPrice === null ? productOldPrice : oldPrice);
+  if (typeof item.priceText !== "string" || !item.priceText) {
+    item.priceText = typeof product.price === "string" && getNumericPrice(product.price) === null ? product.price : "";
+  }
   return item;
 }
 
@@ -249,8 +237,10 @@ document.querySelectorAll(".chip").forEach(function (chip) {
   chip.addEventListener("click", function () {
     document.querySelectorAll(".chip").forEach(function (c) {
       c.classList.remove("active");
+      c.setAttribute("aria-pressed", "false");
     });
     chip.classList.add("active");
+    chip.setAttribute("aria-pressed", "true");
     activeCategory = chip.dataset.filter;
     applyFilters();
   });
@@ -272,11 +262,9 @@ if (heroZone && heroCarousel && window.jQuery) {
   const activeSlide = slides.indexOf(heroCarousel.querySelector(".carousel-item.active"));
   if (activeSlide >= 0) {
     heroZone.dataset.slide = activeSlide + 1;
-    if (sidebar) sidebar.dataset.slide = activeSlide + 1;
   }
   window.jQuery(heroCarousel).on("slide.bs.carousel", function (e) {
     heroZone.dataset.slide = e.to + 1;
-    if (sidebar) sidebar.dataset.slide = e.to + 1;
   });
   if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     window.jQuery(heroCarousel).carousel("pause");
@@ -296,7 +284,7 @@ function renderCart() {
   cart.forEach(function (item) {
     mergeCatalogueData(item, findCatalogueProduct(item));
     item.price = getNumericPrice(item.price);
-    item.oldPrice = getNumericPrice(item.oldPrice);
+    item.oldPrice = typeof item.oldPrice === "number" ? getNumericPrice(item.oldPrice) : null;
     item.qty = getSafeQuantity(item.qty);
   });
   save(CART_KEY, cart);
@@ -328,6 +316,10 @@ function renderCart() {
   const pricedSubtotal = itemsWithPrice.reduce(function (sum, item) {
     return sum + getNumericPrice(item.price) * item.qty;
   }, 0);
+  const discountTotal = cart.reduce(function (sum, item) {
+    const discount = getDiscount(item);
+    return discount ? sum + discount.amount * item.qty : sum;
+  }, 0);
   const totalLabel = itemsWithoutPrice
     ? formatPrice(pricedSubtotal) + "+"
     : formatPrice(pricedSubtotal);
@@ -346,20 +338,22 @@ function renderCart() {
   list.innerHTML = cart
     .map(function (item, i) {
       const price = getNumericPrice(item.price);
-      const oldPrice = getNumericPrice(item.oldPrice);
+      const discount = getDiscount(item);
       const category = categoryLabels[item.category] || item.category;
       const brandCategory = [item.brand, category].filter(Boolean).map(esc).join(" <span aria-hidden=\"true\">·</span> ");
 
       return (
         '<div class="cart-item">' +
         (item.image
-          ? '<img src="' + esc(item.image) + '" alt="' + esc(item.name || "Product image") + '" />'
+          ? '<img src="' + esc(cld(item.image, 220)) + '" alt="' + esc(item.name || "Product image") + '" />'
           : '<div class="cart-image-placeholder" aria-hidden="true"><i class="fa-solid fa-box-open"></i></div>') +
         '<div class="cart-info">' +
         '<strong class="cart-name">' + esc(item.name || "Product") + "</strong>" +
         (brandCategory ? '<div class="cart-meta">' + brandCategory + "</div>" : "") +
-        '<div class="cart-price">' + (oldPrice !== null ? "<s>" + formatPrice(oldPrice) + "</s> " : "") +
-          (price === null ? "Price on request" : formatPrice(price)) + "</div>" +
+        '<div class="cart-price">' +
+          (price === null ? esc(item.priceText || "Ask price") : formatPrice(price)) +
+          (discount ? ' <s>' + formatPrice(price + discount.amount) + '</s><span class="discount-label">' + discount.percent + '% off</span>' : "") +
+          "</div>" +
         '<div class="qty-box">' +
         '<button type="button" data-cart-action="decrease" data-index="' + i + '" aria-label="Decrease quantity of ' + esc(item.name || "product") + '"' + (item.qty <= 1 ? " disabled" : "") + '>&minus;</button>' +
         '<span aria-label="Quantity">' + item.qty + "</span>" +
@@ -368,7 +362,7 @@ function renderCart() {
         "</div>" +
         '<div class="cart-item-side">' +
         '<div class="cart-line-subtotal">Subtotal: <strong>' +
-          (price === null ? "Price on request" : formatPrice(price * item.qty)) + "</strong></div>" +
+          (price === null ? esc(item.priceText || "Ask price") : formatPrice(price * item.qty)) + "</strong></div>" +
         '<button type="button" class="remove-btn" data-cart-action="remove" data-index="' + i + '" aria-label="Remove ' + esc(item.name || "product") + ' from cart">' +
         '<i class="fa-solid fa-trash" aria-hidden="true"></i><span>Remove</span></button>' +
         "</div>" +
@@ -379,9 +373,12 @@ function renderCart() {
 
   summary.innerHTML =
     '<div class="cart-summary">' +
-    "<h2>Order summary</h2>" +
+    "<h2>Order Summary</h2>" +
     '<div class="cart-summary-row"><span>Total items</span><strong>' + totalQuantity + "</strong></div>" +
     '<div class="cart-summary-row"><span>Products</span><strong>' + cart.length + "</strong></div>" +
+    (discountTotal > 0
+      ? '<div class="cart-summary-row cart-summary-discount"><span>You save</span><strong>&minus;' + formatPrice(discountTotal) + "</strong></div>"
+      : "") +
     '<div class="cart-summary-row"><span>Product subtotal</span><strong>' + totalLabel + "</strong></div>" +
     '<div class="cart-summary-row"><span>Delivery charge</span><strong>To be confirmed</strong></div>' +
     '<div class="cart-summary-row cart-summary-total"><span>Final total</span><strong>To be confirmed</strong></div>' +
@@ -389,7 +386,7 @@ function renderCart() {
       ? '<p class="cart-summary-note">' + itemsWithoutPrice + (itemsWithoutPrice === 1 ? " product has" : " products have") + ' no fixed price. The team will confirm the final price.</p>'
       : '<p class="cart-summary-note">Delivery charges are confirmed based on your location and order.</p>') +
     '<div class="cart-actions">' +
-    '<a href="checkout.html" class="btn btn-primary checkout-link"><i class="fa-solid fa-lock" aria-hidden="true"></i> Proceed to checkout</a>' +
+    '<button type="button" class="btn btn-primary checkout-link" data-cart-action="order"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> Order on WhatsApp</button>' +
     '<a href="products.html" class="cart-continue"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Continue shopping</a>' +
     '<button type="button" class="cart-clear" data-cart-action="clear">Clear cart</button>' +
     "</div>" +
@@ -511,11 +508,17 @@ function renderOrders() {
     .map(function (order, i) {
       const items = order.items
         .map(function (item) {
+          const discount = getDiscount(item);
+          const price = getNumericPrice(item.price);
           return (
-            "<li>" +
-            '<img src="' + esc(item.image) + '" alt="" />' +
-            "<span>" + esc(item.name) + "</span>" +
-            "<b>x " + item.qty + "</b>" +
+            '<li class="order-item-row">' +
+            (item.image ? '<img src="' + esc(cld(item.image, 140)) + '" alt="" />' : '<span class="order-image-placeholder" aria-hidden="true"><i class="fa-solid fa-box-open"></i></span>') +
+            '<span class="order-item-name">' + esc(item.name || "Product") + "</span>" +
+            '<span class="order-item-qty">Qty ' + getSafeQuantity(item.qty) + "</span>" +
+            '<span class="order-item-price">' +
+              (price === null ? esc(item.priceText || "Ask price") : formatPrice(price)) +
+              (discount ? ' <s>' + formatPrice(price + discount.amount) + '</s><small class="discount-label">' + discount.percent + '% off</small>' : "") +
+            "</span>" +
             "</li>"
           );
         })
@@ -707,10 +710,12 @@ function setupSearchDropdown() {
 
 function createProductCard(p) {
   const currentPrice = getNumericPrice(p.price);
-  const oldPrice = getNumericPrice(p.oldPrice);
+  const discount = getDiscount(p);
   const price = currentPrice !== null
-    ? '<span class="card-price">' + (oldPrice !== null ? "<s>" + formatPrice(oldPrice) + "</s> " : "") + formatPrice(currentPrice) + "</span>"
-    : '<span class="card-price card-price-ask">Price on request</span>';
+    ? '<span class="card-price">' + formatPrice(currentPrice) + "</span>" +
+      (discount ? '<s class="card-old-price">' + formatPrice(currentPrice + discount.amount) + "</s>" : "")
+    : '<span class="card-price card-price-ask">' + (typeof p.price === "string" && p.price.trim() ? formatPrice(p.price) : "Ask price") + "</span>";
+  const discountBadge = discount ? '<span class="card-discount">' + discount.percent + "% off</span>" : "";
   const facts = [];
   if (p.capacity && String(p.capacity).indexOf("XX") === -1) facts.push(esc(p.capacity) + " capacity");
   if (p.accuracy && String(p.accuracy).indexOf("XX") === -1) facts.push(esc(p.accuracy) + " accuracy");
@@ -723,22 +728,22 @@ function createProductCard(p) {
   card.dataset.id = p.id || "";
   card.dataset.category = p.category || "";
   card.innerHTML =
-    '<div class="card-img-wrap"><img src="' + esc(cld(p.image, 500)) + '" class="card-img-top" alt="' + esc(p.name || "Product image") + '" loading="lazy" /></div>' +
+    '<div class="card-img-wrap">' + discountBadge + '<img src="' + esc(cld(p.image, 500)) + '" class="card-img-top" alt="' + esc(p.name || "Product image") + '" loading="lazy" /></div>' +
     '<div class="card-body">' +
-    '<p class="card-brand">' + esc(p.brand || "ALFA SYSTEMS") + "</p>" +
-    '<div class="card-row"><h2 class="card-title"><a href="product.html?id=' + encodeURIComponent(p.id) + '">' + esc(p.name || "Product") + "</a></h2>" + price + "</div>" +
-    '<p class="card-sub">' + esc(p.usedFor || "") + "</p>" + specs +
-    '<p class="card-text">' + esc(searchText) + "</p>" +
-    '<div class="card-actions"><a class="card-view-link" href="product.html?id=' + encodeURIComponent(p.id) + '">View Details</a>' +
-    '<button class="btn btn-primary" type="button" onclick="addToCart(this, event)">Add to Cart</button></div></div>';
+    '<div class="card-row"><h2 class="card-title"><a href="product.html?id=' + encodeURIComponent(p.id) + '">' + esc(p.name || "Product") + "</a></h2>" +
+    '<div class="card-price-block">' + price + (discount ? '<span class="card-off-text">' + discount.percent + "% off</span>" : "") + "</div></div>" +
+    '<p class="card-sub">' + esc(p.usedFor || p.description || "") + "</p>" + specs +
+    '<p class="card-text card-search-text">' + esc(searchText) + "</p>" +
+    '<div class="card-actions"><button class="btn btn-primary" type="button" onclick="addToCart(this, event)">Add to Cart</button></div></div>';
   return card;
 }
 
 function renderProductGrid() {
   const grid = document.getElementById("productGrid");
   if (!grid || typeof products === "undefined") return;
-  const featuredLimit = Number(grid.dataset.featuredLimit) || 6;
-  products.slice(0, featuredLimit).forEach(function (product) {
+  const featuredLimit = Number(grid.dataset.featuredLimit);
+  const visibleProducts = featuredLimit > 0 ? products.slice(0, featuredLimit) : products;
+  visibleProducts.forEach(function (product) {
     grid.appendChild(createProductCard(product));
   });
 }

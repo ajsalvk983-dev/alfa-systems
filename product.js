@@ -50,10 +50,7 @@ function renderRelated(p) {
   return related
     .map(function (x) {
       return (
-        '<a class="pd-related-card" href="product.html?id=' + encodeURIComponent(x.id) + '">' +
-        '<div class="pd-related-img"><img src="' + esc(cld(x.image, 320)) + '" alt="' + esc(x.name) + '" loading="lazy" /></div>' +
-        "<span>" + esc(x.name) + "</span>" +
-        "</a>"
+        createProductCard(x).outerHTML
       );
     })
     .join("");
@@ -67,7 +64,7 @@ if (!product) {
   const images = product.images && product.images.length ? product.images : [product.image];
   const categoryLabel = CATEGORY_LABELS[product.category] || "Products";
   const currentPrice = getNumericPrice(product.price);
-  const oldPrice = getNumericPrice(product.oldPrice);
+  const discount = getDiscount(product);
 
   const thumbs =
     images.length > 1
@@ -117,14 +114,17 @@ if (!product) {
       '<div class="pd-info">' +
         '<p class="pd-brand">' + esc(product.brand || "") + "</p>" +
         '<h1 class="pd-title">' + esc(product.name) + "</h1>" +
-        '<p class="pd-desc">' + esc(product.description) + "</p>" +
+        '<p class="pd-desc">' + esc(hasValue(product.usedFor) ? "Suitable for " + product.usedFor + "." : product.description) + "</p>" +
         quickFactsHtml +
 
         '<div class="pd-price">' +
-          "<strong>" +
-            (oldPrice !== null ? "<s>" + formatPrice(oldPrice) + "</s> " : "") +
-            (currentPrice === null ? "Price on request" : formatPrice(currentPrice)) +
+          '<div class="pd-price-line"><strong>' +
+            (currentPrice === null
+              ? (typeof product.price === "string" && product.price.trim() ? formatPrice(product.price) : "Ask price")
+              : formatPrice(currentPrice)) +
           "</strong>" +
+          (discount ? '<s>' + formatPrice(currentPrice + discount.amount) + '</s><span class="pd-discount">' + discount.percent + "% off</span>" : "") +
+          "</div>" +
           "<small>" + esc(product.priceNote || "Price and availability will be confirmed by ALFA SYSTEMS.") + "</small>" +
         "</div>" +
 
@@ -141,12 +141,17 @@ if (!product) {
         "</div>" +
 
         '<div class="pd-notes">' +
-          (hasValue(product.usedFor) ? '<div class="pd-note"><i class="fa-solid fa-store"></i><div><b>Used for</b><span>' + esc(product.usedFor) + "</span></div></div>" : "") +
-          '<div class="pd-note"><i class="fa-solid fa-truck"></i><div><b>Delivery</b><span>Delivery charges and arrangements are confirmed based on product and location.</span></div></div>' +
-          '<div class="pd-note"><i class="fa-solid fa-headset"></i><div><b>Need product or service support?</b><span><a href="services.html">Request a service</a> or <a href="contact.html">contact ALFA SYSTEMS</a>.</span></div></div>' +
+          '<div class="pd-note"><i class="fa-solid fa-scale-balanced" aria-hidden="true"></i><div><b>Best for</b><span>' + esc(hasValue(product.usedFor) ? product.usedFor : "Retail, commercial and industrial weighing applications") + "</span></div></div>" +
+          '<div class="pd-note"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i><div><b>Need help choosing?</b><span><a href="https://wa.me/' + Whatsapp_nmbr + '?text=' + encodeURIComponent("Hello, I need help choosing " + product.name) + '" target="_blank" rel="noopener">Chat with ALFA SYSTEMS on WhatsApp</a></span></div></div>' +
         "</div>" +
       "</div>" +
     "</div>" +
+
+    '<section class="pd-overview">' +
+      "<h2>Product description</h2>" +
+      "<p>" + esc(product.description) + "</p>" +
+      (hasValue(product.usedFor) ? "<p><strong>Recommended use:</strong> " + esc(product.usedFor) + "</p>" : "") +
+    "</section>" +
 
     '<div class="pd-details">' +
       '<section class="pd-section">' +
