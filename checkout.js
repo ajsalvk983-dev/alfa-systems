@@ -77,10 +77,13 @@ function renderCheckoutSummary() {
 
     const row = checkoutElement("article", null, "checkout-item");
     if (product && product.image) {
-      const image = checkoutElement("img", null, "checkout-item-image");
-      image.src = product.image;
+      const tile = checkoutElement("span", null, "checkout-item-image");
+      const image = checkoutElement("img");
+      image.crossOrigin = "anonymous";
+      image.src = cld(product.image, 140);
       image.alt = "";
-      row.appendChild(image);
+      tile.appendChild(image);
+      row.appendChild(tile);
     } else {
       row.appendChild(checkoutElement("div", "ALFA", "checkout-item-image checkout-image-placeholder"));
     }
@@ -241,10 +244,13 @@ function showOrderConfirmation(order) {
   (Array.isArray(order.items) ? order.items : []).forEach(function (item) {
     const row = checkoutElement("article", null, "checkout-item");
     if (item.image) {
-      const image = checkoutElement("img", null, "checkout-item-image");
-      image.src = item.image;
+      const tile = checkoutElement("span", null, "checkout-item-image");
+      const image = checkoutElement("img");
+      image.crossOrigin = "anonymous";
+      image.src = cld(item.image, 140);
       image.alt = "";
-      row.appendChild(image);
+      tile.appendChild(image);
+      row.appendChild(tile);
     }
     const details = checkoutElement("div");
     details.appendChild(checkoutElement("strong", item.name || "Product", "checkout-item-name"));

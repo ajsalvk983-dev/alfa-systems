@@ -24,6 +24,7 @@ let totalOrdersCount = 0;
 let customerSearchTimer = 0;
 let customerSearchRequest = 0;
 let dashboardStatsRequest = 0;
+let productStatusFilter = "all";
 let editorImages = [];
 let mainImageIndex = 0;
 let editingProduct = false;
@@ -279,15 +280,20 @@ function imageUrls(product) {
 function renderProducts() {
   const query = $("searchInput").value.trim().toLowerCase();
   const filtered = productList.filter(function (p) {
-    return [p.name, p.brand, p.category, p.id].some(function (v) {
+    const matchesQuery = [p.name, p.brand, p.category, p.id].some(function (v) {
       return String(v || "").toLowerCase().includes(query);
     });
+    const matchesStatus = productStatusFilter === "all" ||
+      (productStatusFilter === "active" ? p.isActive !== false : p.isActive === false);
+    return matchesQuery && matchesStatus;
   });
   const body = $("products");
   body.replaceChildren();
   filtered.forEach(function (p) {
     const row = el("tr");
+    if (p.isActive === false) row.classList.add("is-archived");
     const productTd = el("td");
+    productTd.dataset.label = "Product";
     const productCell = el("div", null, "product-cell");
     const urls = imageUrls(p);
     const thumb = el("img", null, "product-thumb");
@@ -300,28 +306,44 @@ function renderProducts() {
     productCell.append(thumb, productText);
     productTd.appendChild(productCell);
     const categoryTd = el("td");
+    categoryTd.dataset.label = "Category";
     categoryTd.appendChild(el("span", categoryLabel(p.category), "category-pill"));
     const priceTd = el("td", displayPrice(p.price));
+    priceTd.dataset.label = "Price";
     const imagesTd = el("td", String(urls.length));
+    imagesTd.dataset.label = "Images";
+    const orderCount = Number(p.orderCount || (p.isOrdered ? 1 : 0));
+    const ordersTd = el("td", String(orderCount));
+    ordersTd.dataset.label = "Orders";
+    const statusTd = el("td");
+    statusTd.dataset.label = "Status";
+    statusTd.appendChild(el("span", p.isActive === false ? "Archived" : "Active", "product-status-pill " + (p.isActive === false ? "archived" : "active")));
     const actionsTd = el("td");
+    actionsTd.dataset.label = "Actions";
     const actions = el("div", null, "table-actions");
     const edit = el("button", "Edit", "table-action");
     edit.type = "button";
     edit.addEventListener("click", function () { openEditor(p); });
-    const remove = el("button", p.isActive ? (p.isOrdered ? "Archive" : "Delete") : "Show", "table-action" + (p.isActive && !p.isOrdered ? " delete" : ""));
-    remove.type = "button";
-    remove.addEventListener("click", function () {
-      if (p.isOrdered) {
-        setProductVisibility(p, false, remove);
-      } else if (!p.isActive) {
-        setProductVisibility(p, true, remove);
-      } else {
-        deleteProduct(p, remove);
-      }
+    const visibility = el("button", p.isActive === false ? "Show" : "Hide", "table-action");
+    visibility.type = "button";
+    visibility.addEventListener("click", function () {
+      setProductVisibility(p, p.isActive === false, visibility);
     });
-    actions.append(edit, remove);
+    const remove = el("button", "Delete", "table-action delete");
+    remove.type = "button";
+    remove.disabled = orderCount > 0;
+    if (orderCount > 0) {
+      remove.title = "Used in " + orderCount + " orders, archive it instead";
+      remove.setAttribute("aria-label", "Delete disabled. Used in " + orderCount + " orders, archive it instead");
+    } else {
+      remove.addEventListener("click", function () { deleteProduct(p, remove); });
+    }
+    actions.append(edit, visibility, remove);
     actionsTd.appendChild(actions);
-    row.append(productTd, categoryTd, priceTd, imagesTd, actionsTd);
+    if (orderCount > 0) {
+      actionsTd.appendChild(el("small", "Used in " + orderCount + " orders, archive it instead", "delete-help"));
+    }
+    row.append(productTd, categoryTd, priceTd, imagesTd, ordersTd, statusTd, actionsTd);
     body.appendChild(row);
   });
   $("emptyProducts").hidden = filtered.length > 0;
@@ -338,7 +360,7 @@ async function loadProducts() {
   $("emptyProducts").hidden = true;
   const loadingRow = el("tr");
   const loadingCell = el("td", "Loading products...");
-  loadingCell.colSpan = 5;
+  loadingCell.colSpan = 7;
   loadingCell.className = "muted";
   loadingCell.style.textAlign = "center";
   loadingCell.style.padding = "30px";
@@ -1065,7 +1087,7 @@ async function saveProduct(event) {
 }
 
 async function deleteProduct(product, button) {
-  if (!await confirmAdminAction('Delete "' + (product.name || "this product") + '"? This cannot be undone.')) return;
+  if (!await confirmAdminAction('Permanently delete "' + (product.name || "this product") + '" from the catalogue? This removes it from the store and cannot be undone. It is not linked to any orders.', "Delete permanently")) return;
   const previousText = button.textContent;
   button.disabled = true;
   button.textContent = "Deleting…";
@@ -1086,7 +1108,10 @@ async function deleteProduct(product, button) {
 
 async function setProductVisibility(product, isActive, button) {
   const action = isActive ? "show" : "archive";
-  if (!await confirmAdminAction((isActive ? "Show " : "Archive ") + '"' + (product.name || "this product") + '"?', isActive ? "Show product" : "Archive product")) return;
+  const message = isActive
+    ? 'Show "' + (product.name || "this product") + '" in the public catalogue?'
+    : 'Hide "' + (product.name || "this product") + '" from the public catalogue? Existing orders and order history will be preserved.';
+  if (!await confirmAdminAction(message, isActive ? "Show product" : "Hide product")) return;
   const previousText = button.textContent;
   button.disabled = true;
   button.textContent = isActive ? "Showing…" : "Archiving…";
@@ -1422,6 +1447,17 @@ function saveSettings(event) {
 $("loginForm").addEventListener("submit", login);
 $("logoutBtn").addEventListener("click", function () { showLogin(""); });
 $("searchInput").addEventListener("input", renderProducts);
+document.querySelectorAll("[data-product-status]").forEach(function (tab) {
+  tab.addEventListener("click", function () {
+    productStatusFilter = tab.dataset.productStatus;
+    document.querySelectorAll("[data-product-status]").forEach(function (item) {
+      const active = item === tab;
+      item.classList.toggle("active", active);
+      item.setAttribute("aria-pressed", active ? "true" : "false");
+    });
+    renderProducts();
+  });
+});
 $("adminGlobalSearch").addEventListener("input", function () {
   $("searchInput").value = $("adminGlobalSearch").value;
   renderProducts();

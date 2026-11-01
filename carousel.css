@@ -440,3 +440,111 @@
     transition: none;
   }
 }
+
+.alfa-carousel {
+  position: relative;
+  background: linear-gradient(120deg, #071433, #10306b);
+}
+
+.hero-zone[data-slide="2"] .alfa-carousel {
+  background: linear-gradient(120deg, #2e1f15, #6b4a2f);
+}
+
+.hero-zone[data-slide="3"] .alfa-carousel {
+  background: linear-gradient(120deg, #08311f, #14573f);
+}
+
+.hero-zone[data-slide="4"] .alfa-carousel {
+  background: linear-gradient(120deg, #3a0f22, #7a2347);
+}
+
+.alfa-carousel .carousel-inner {
+  display: grid;
+  grid-template-rows: minmax(480px, 1fr);
+  min-height: 480px;
+  background: inherit;
+}
+
+.alfa-carousel .carousel-item,
+.alfa-carousel .alfa-slide {
+  height: 100%;
+  min-height: 480px;
+}
+
+.alfa-carousel .alfa-slide {
+  display: grid;
+}
+
+.carousel-arrows {
+  position: absolute;
+  z-index: 12;
+  right: 18px;
+  bottom: 14px;
+  display: flex;
+  gap: 8px;
+}
+
+.alfa-carousel .carousel-arrows .carousel-control-prev,
+.alfa-carousel .carousel-arrows .carousel-control-next {
+  position: static;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  place-items: center;
+  color: var(--ink);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 50%;
+  opacity: 1;
+}
+
+.alfa-carousel .carousel-arrows .carousel-control-prev:hover,
+.alfa-carousel .carousel-arrows .carousel-control-next:hover {
+  color: var(--bg-1);
+  background: var(--accent);
+}
+
+.alfa-carousel .carousel-indicators {
+  z-index: 11;
+  bottom: 20px;
+  left: 24px;
+}
+
+.lens {
+  aspect-ratio: 1 / 1;
+  background: #fff;
+  border: 0;
+  border-radius: 50%;
+}
+
+.alfa-carousel .slide-img {
+  padding: 8%;
+}
+
+@media (max-width: 768px) {
+  .alfa-carousel .carousel-inner,
+  .alfa-carousel .carousel-item,
+  .alfa-carousel .alfa-slide {
+    min-height: 720px;
+  }
+
+  .alfa-carousel .carousel-inner {
+    grid-template-rows: minmax(720px, 1fr);
+  }
+
+  .alfa-carousel .alfa-slide {
+    height: 100%;
+    padding-bottom: 78px;
+  }
+
+  .alfa-carousel .carousel-indicators {
+    bottom: 31px;
+    left: 16px;
+  }
+
+  .carousel-arrows {
+    right: 14px;
+    bottom: 13px;
+  }
+}

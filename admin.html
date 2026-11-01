@@ -6,6 +6,9 @@
     <meta name="robots" content="noindex" />
     <meta name="theme-color" content="#f5f7fb" />
     <title>Admin Dashboard | ALFA SYSTEMS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="admin.css" />
   </head>
   <body>
@@ -130,9 +133,14 @@
               <div><h2>All products</h2><p class="muted">Search or edit your store catalogue.</p></div>
               <label class="search-box"><span aria-hidden="true">⌕</span><input id="searchInput" type="search" placeholder="Search products..." autocomplete="off" /></label>
             </div>
-            <div class="table-scroll">
-              <table class="products-table">
-                <thead><tr><th>PRODUCT</th><th>CATEGORY</th><th>PRICE</th><th>IMAGES</th><th>ACTIONS</th></tr></thead>
+            <div class="product-status-tabs" role="group" aria-label="Filter products by status">
+              <button type="button" class="active" data-product-status="all" aria-pressed="true">All</button>
+              <button type="button" data-product-status="active" aria-pressed="false">Active</button>
+              <button type="button" data-product-status="archived" aria-pressed="false">Archived</button>
+            </div>
+            <div class="table-scroll catalogue-product-table-wrap">
+              <table class="products-table catalogue-products-table">
+                <thead><tr><th>PRODUCT</th><th>CATEGORY</th><th>PRICE</th><th>IMAGES</th><th>ORDERS</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
                 <tbody id="products"></tbody>
               </table>
             </div>

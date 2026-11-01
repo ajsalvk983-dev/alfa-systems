@@ -174,7 +174,10 @@ if (!product) {
 
 function showImage(i) {
   const images = product.images && product.images.length ? product.images : [product.image];
-  document.getElementById("pdMainImg").src = cld(images[i], 900);
+  const mainImage = document.getElementById("pdMainImg");
+  mainImage.removeAttribute("data-alfa-image-ready");
+  mainImage.src = cld(images[i], 900);
+  initProductImages(mainImage.parentElement);
   document.querySelectorAll(".pd-thumb").forEach(function (t, idx) {
     t.classList.toggle("active", idx === i);
   });

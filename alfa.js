@@ -34,7 +34,77 @@ function formatPrice(v) {
 // Cloudinary delivers a smaller, modern-format copy of a photo when asked (f_auto = best format, q_auto = best quality, w_ = width)
 function cld(url, w) {
   if (!url || url.indexOf("/image/upload/") === -1) return url;
-  return url.replace("/image/upload/", "/image/upload/f_auto,q_auto,w_" + w + "/");
+  return url.replace("/image/upload/", "/image/upload/f_auto,q_auto,c_pad,ar_1:1,w_" + w + ",b_auto/");
+}
+
+function initProductImages(root) {
+  const images = root.querySelectorAll("img:not([data-alfa-image-ready])");
+  images.forEach(function (img) {
+    img.dataset.alfaImageReady = "true";
+    const tile = img.closest(".card-img-wrap,.category-image,.pd-photo,.pd-thumb,.pd-related-img,.lens,.search-product-image,.cart-item-image,.order-item-image,.checkout-item-image");
+    const source = img.getAttribute("src");
+    if (!tile || !source) return;
+
+    function applyColor(color) {
+      tile.style.backgroundColor = color;
+      tile.classList.remove("image-loading");
+    }
+
+    function sampleColor() {
+      if (!img.naturalWidth || !img.naturalHeight) {
+        applyColor("#fff");
+        return;
+      }
+      const cacheKey = "alfaImageColor:" + img.currentSrc;
+      try {
+        const cached = sessionStorage.getItem(cacheKey);
+        if (cached && /^#[0-9a-f]{6}$/i.test(cached)) {
+          applyColor(cached);
+          return;
+        }
+      } catch (error) {
+        // Storage can be unavailable in private browsing; sampling still works.
+      }
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = 10;
+        canvas.height = 10;
+        const context = canvas.getContext("2d", { willReadFrequently: true });
+        if (!context) throw new Error("Canvas context unavailable");
+        context.drawImage(img, 0, 0, 10, 10);
+        const pixels = context.getImageData(0, 0, 10, 10).data;
+        const samples = [];
+        for (let offset = 0; offset < 10; offset += 1) {
+          [0, 1, 8, 9].forEach(function (edge) {
+            [edge * 10 + offset, offset * 10 + edge].forEach(function (index) {
+              const pixel = index * 4;
+              samples.push([pixels[pixel], pixels[pixel + 1], pixels[pixel + 2]]);
+            });
+          });
+        }
+        const channels = [0, 1, 2].map(function (channel) {
+          const values = samples.map(function (rgb) { return rgb[channel]; }).sort(function (a, b) { return a - b; });
+          return Math.round((values[values.length / 2 - 1] + values[values.length / 2]) / 2);
+        });
+        const color = "#" + channels.map(function (value) { return value.toString(16).padStart(2, "0"); }).join("");
+        try {
+          sessionStorage.setItem(cacheKey, color);
+        } catch (error) {
+          // A full or disabled session store should not prevent image rendering.
+        }
+        applyColor(color);
+      } catch (error) {
+        applyColor("#fff");
+      }
+    }
+
+    tile.classList.add("image-loading");
+    img.addEventListener("load", sampleColor, { once: true });
+    img.addEventListener("error", function () { applyColor("#fff"); }, { once: true });
+    img.crossOrigin = "anonymous";
+    img.src = source;
+    if (img.complete && img.naturalWidth) sampleColor();
+  });
 }
 
 function showToast(message) {
@@ -357,7 +427,7 @@ function renderCart() {
       return (
         '<div class="cart-item">' +
         (item.image
-          ? '<img src="' + esc(cld(item.image, 220)) + '" alt="' + esc(item.name || "Product image") + '" />'
+          ? '<span class="cart-item-image"><img src="' + esc(cld(item.image, 220)) + '" alt="' + esc(item.name || "Product image") + '" /></span>'
           : '<div class="cart-image-placeholder" aria-hidden="true"><i class="fa-solid fa-box-open"></i></div>') +
         '<div class="cart-info">' +
         '<strong class="cart-name">' + esc(item.name || "Product") + "</strong>" +
@@ -530,7 +600,7 @@ function renderOrders() {
           const price = getNumericPrice(item.price);
           return (
             '<li class="order-item-row">' +
-            (item.image ? '<img src="' + esc(cld(item.image, 140)) + '" alt="" />' : '<span class="order-image-placeholder" aria-hidden="true"><i class="fa-solid fa-box-open"></i></span>') +
+            (item.image ? '<span class="order-item-image"><img src="' + esc(cld(item.image, 140)) + '" alt="" /></span>' : '<span class="order-image-placeholder" aria-hidden="true"><i class="fa-solid fa-box-open"></i></span>') +
             '<span class="order-item-name">' + esc(item.name || "Product") + "</span>" +
             '<span class="order-item-qty">Qty ' + getSafeQuantity(item.qty) + "</span>" +
             '<span class="order-item-price">' +
@@ -602,7 +672,6 @@ function detailOfProduct(card) {
   window.location.href = "product.html?id=" + encodeURIComponent(id);
 }
 
-// search dropdown: suggestions on the left, matching products on the right
 const SEARCH_CATEGORY_LABELS = {
   platform: "Platform scales",
   counter: "Counter scales",
@@ -620,7 +689,8 @@ function highlightMatch(text, q) {
 function setupSearchDropdown() {
   const host = document.querySelector(".yt-search");
   const input = document.querySelector(".search");
-  if (!host || !input || typeof products === "undefined") return;
+  const navbar = host && host.closest(".navbar");
+  if (!host || !input || !navbar || typeof products === "undefined") return;
 
   const panel = document.createElement("div");
   panel.className = "search-panel";
@@ -633,21 +703,31 @@ function setupSearchDropdown() {
   clear.textContent = "×";
   clear.hidden = true;
   host.appendChild(clear);
+  const close = document.createElement("button");
+  close.type = "button";
+  close.className = "search-close";
+  close.setAttribute("aria-label", "Close search");
+  close.textContent = "×";
+  host.appendChild(close);
   const homePage = document.body.classList.contains("home-page");
 
   function positionPanel() {
     if (panel.hidden) return;
     const bounds = input.getBoundingClientRect();
     const mobile = window.matchMedia("(max-width: 600px)").matches;
-    const width = Math.min(window.innerWidth - 24, mobile ? window.innerWidth - 24 : Math.max(bounds.width, 360));
-    const left = mobile ? 12 : Math.max(12, Math.min(bounds.left, window.innerWidth - width - 12));
+    const navBounds = navbar.getBoundingClientRect();
+    const width = mobile ? Math.max(0, window.innerWidth - 16) : Math.min(window.innerWidth - 16, Math.max(bounds.width, 360));
+    const left = mobile ? 8 : Math.max(8, Math.min(bounds.left, window.innerWidth - width - 8));
+    const top = mobile ? navBounds.bottom + 8 : bounds.bottom + 8;
     panel.style.left = left + "px";
-    panel.style.top = Math.min(bounds.bottom + 8, window.innerHeight - 80) + "px";
+    panel.style.top = top + "px";
     panel.style.width = width + "px";
+    panel.style.maxHeight = Math.max(120, window.innerHeight - top - 16) + "px";
   }
 
   function goToResults(categoryValue) {
     panel.hidden = true;
+    navbar.classList.remove("search-open");
     const query = input.value.trim();
     if (homePage) {
       if (categoryValue) {
@@ -674,13 +754,14 @@ function setupSearchDropdown() {
 
   function render() {
     const q = input.value.trim().toLowerCase();
+    clear.hidden = !input.value;
     if (!q) {
       panel.hidden = true;
       return;
     }
 
     const matches = products.filter(function (p) {
-      return [p.name, p.brand, p.usedFor, p.description].join(" ").toLowerCase().includes(q);
+      return [p.name, p.brand, p.category, p.usedFor, p.description, p.capacity, p.accuracy].join(" ").toLowerCase().includes(q);
     });
 
     const seen = {};
@@ -697,41 +778,37 @@ function setupSearchDropdown() {
     products.forEach(function (p) { add(p.brand, "text", p.brand); });
     products.forEach(function (p) { add(p.name, "text", p.name); });
 
-    if (!matches.length && !suggestions.length) {
-      panel.innerHTML = '<p class="search-empty">No products found. Try another word.</p>';
-      panel.hidden = false;
-      positionPanel();
-      return;
-    }
-
     const suggestionHtml = suggestions
-      .slice(0, 5)
+      .slice(0, 8)
       .map(function (s) {
         return '<button type="button" class="search-sugg" data-type="' + s.type + '" data-value="' + esc(s.value) + '">' + highlightMatch(s.label, q) + "</button>";
       })
       .join("");
 
     const productHtml = matches
-      .slice(0, 5)
+      .slice(0, 6)
       .map(function (p) {
+        const discount = getDiscount(p);
         return (
           '<a class="search-product" href="product.html?id=' + encodeURIComponent(p.id) + '">' +
-          '<img src="' + esc(cld(p.image, 120)) + '" alt="" />' +
-          "<div><span>" + esc(p.name) + "</span>" +
+          '<span class="search-product-image"><img src="' + esc(cld(p.image, 120)) + '" alt="" crossorigin="anonymous" /></span>' +
+          '<span class="search-product-copy"><span>' + highlightMatch(String(p.name || "Product"), q) + "</span>" +
           (p.price ? "<b>" + formatPrice(p.price) + "</b>" : "") +
-          "</div></a>"
+          (discount ? '<small class="search-discount">' + discount.percent + "% off</small>" : "") +
+          "</span></a>"
         );
       })
       .join("");
 
     panel.innerHTML =
-      '<div class="search-cols">' +
-      '<div class="search-col"><h6>Suggestions</h6>' + (suggestionHtml || '<p class="search-empty">No suggestions</p>') + "</div>" +
-      '<div class="search-col"><h6>Products</h6>' + (productHtml || '<p class="search-empty">No products found</p>') + "</div>" +
-      "</div>" +
-      (matches.length ? '<div class="search-foot"><button type="button" class="search-all">View all results</button></div>' : "");
+      (matches.length
+        ? '<section class="search-results"><h2>Products</h2>' + productHtml + "</section>"
+        : '<p class="search-empty">No products found</p>') +
+      (suggestions.length ? '<section class="search-suggestions"><h2>Suggestions</h2><div>' + suggestionHtml + "</div></section>" : "") +
+      '<div class="search-foot"><button type="button" class="search-all">View all results</button></div>';
     panel.hidden = false;
     positionPanel();
+    initProductImages(panel);
   }
 
   panel.addEventListener("click", function (e) {
@@ -755,25 +832,55 @@ function setupSearchDropdown() {
     if (e.key === "Enter") goToResults();
     if (e.key === "Escape") {
       panel.hidden = true;
-      host.classList.remove("search-open");
+      navbar.classList.remove("search-open");
+      input.blur();
     }
     if (e.key === "ArrowDown" && !panel.hidden) {
-      const firstResult = panel.querySelector(".search-sugg, .search-product, .search-all");
+      const firstResult = panel.querySelector(".search-product, .search-sugg, .search-all");
       if (firstResult) {
         e.preventDefault();
         firstResult.focus();
       }
+    } else if (e.key === "ArrowUp" && !panel.hidden) {
+      const entries = panel.querySelectorAll(".search-product, .search-sugg, .search-all");
+      if (entries.length) {
+        e.preventDefault();
+        entries[entries.length - 1].focus();
+      }
+    }
+  });
+  panel.addEventListener("keydown", function (e) {
+    const entries = Array.from(panel.querySelectorAll(".search-product, .search-sugg, .search-all"));
+    const current = entries.indexOf(document.activeElement);
+    if (e.key === "Escape") {
+      e.preventDefault();
+      panel.hidden = true;
+      navbar.classList.remove("search-open");
+      input.blur();
+    } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      const step = e.key === "ArrowDown" ? 1 : -1;
+      const next = current < 0 ? 0 : (current + step + entries.length) % entries.length;
+      if (entries[next]) entries[next].focus();
+    } else if (e.key === "Enter" && current >= 0) {
+      e.preventDefault();
+      entries[current].click();
     }
   });
 
   const icon = host.querySelector(".search-icon");
   if (icon) icon.addEventListener("click", function () {
-    if (window.matchMedia("(max-width: 600px)").matches && !host.classList.contains("search-open")) {
-      host.classList.add("search-open");
+    if (window.matchMedia("(max-width: 600px)").matches && !navbar.classList.contains("search-open")) {
+      navbar.classList.add("search-open");
       input.focus();
       return;
     }
     goToResults();
+  });
+  close.addEventListener("click", function () {
+    panel.hidden = true;
+    navbar.classList.remove("search-open");
+    input.blur();
   });
   clear.addEventListener("click", function () {
     input.value = "";
@@ -788,9 +895,10 @@ function setupSearchDropdown() {
   });
 
   document.addEventListener("click", function (e) {
-    if (!host.contains(e.target) && !panel.contains(e.target)) {
+    if (!navbar.contains(e.target) && !panel.contains(e.target)) {
       panel.hidden = true;
-      host.classList.remove("search-open");
+      navbar.classList.remove("search-open");
+      input.blur();
     }
   });
   window.addEventListener("resize", positionPanel);
@@ -837,8 +945,75 @@ function renderProductGrid() {
   });
 }
 
+function setupStickyNav() {
+  const navbar = document.querySelector(".navbar");
+  if (!navbar) return;
+  const updateScrolledState = function () {
+    navbar.classList.toggle("scrolled", window.scrollY > 24);
+  };
+  updateScrolledState();
+  window.addEventListener("scroll", updateScrolledState, { passive: true });
+}
+
+function setupCarouselSwipe() {
+  const carousel = document.querySelector(".alfa-carousel");
+  if (!carousel) return;
+  const updateSearchPalette = function () {
+    const activeSlide = carousel.querySelector(".carousel-item.active .alfa-slide");
+    if (!activeSlide) return;
+    const colors = window.getComputedStyle(activeSlide);
+    document.documentElement.style.setProperty("--search-bg-1", colors.getPropertyValue("--bg1").trim());
+    document.documentElement.style.setProperty("--search-bg-2", colors.getPropertyValue("--bg2").trim());
+    document.documentElement.style.setProperty("--search-accent", colors.getPropertyValue("--accent").trim());
+    document.documentElement.style.setProperty("--search-ink", colors.getPropertyValue("--ink").trim());
+  };
+  updateSearchPalette();
+  if (window.jQuery) {
+    window.jQuery(carousel).on("slid.bs.carousel", updateSearchPalette);
+  } else {
+    new MutationObserver(updateSearchPalette).observe(carousel.querySelector(".carousel-inner"), {
+      attributes: true,
+      subtree: true,
+      attributeFilter: ["class"]
+    });
+  }
+  let startX = 0;
+  let startY = 0;
+  carousel.addEventListener("touchstart", function (event) {
+    const touch = event.changedTouches[0];
+    startX = touch.clientX;
+    startY = touch.clientY;
+  }, { passive: true });
+  carousel.addEventListener("touchend", function (event) {
+    const touch = event.changedTouches[0];
+    const deltaX = touch.clientX - startX;
+    const deltaY = touch.clientY - startY;
+    if (Math.abs(deltaX) < 48 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
+    const direction = deltaX < 0 ? "next" : "prev";
+    if (window.jQuery && window.jQuery.fn.carousel) {
+      window.jQuery(carousel).carousel(direction);
+    } else {
+      const control = carousel.querySelector('[data-slide="' + direction + '"]');
+      if (control) control.click();
+    }
+  }, { passive: true });
+}
+
 renderProductGrid();
 setupSearchDropdown();
+initProductImages(document);
+new MutationObserver(function (records) {
+  records.forEach(function (record) {
+    record.addedNodes.forEach(function (node) {
+      if (node.nodeType === 1) {
+        if (node.matches("img")) initProductImages(node.parentElement || document);
+        else initProductImages(node);
+      }
+    });
+  });
+}).observe(document.body, { childList: true, subtree: true });
+setupStickyNav();
+setupCarouselSwipe();
 setupCartControls();
 updateBadge();
 renderCart();

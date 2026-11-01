@@ -6,6 +6,13 @@
   const capacity = document.getElementById("capacityFilter");
   const sort = document.getElementById("sortFilter");
   const resultCount = document.getElementById("catalogResultCount");
+  const filterToggle = document.getElementById("catalogFiltersToggle");
+  const filterCount = document.getElementById("catalogFilterCount");
+  const filterBackdrop = document.getElementById("catalogFiltersBackdrop");
+  const filterClose = document.getElementById("catalogFiltersClose");
+  const filterReset = document.getElementById("catalogFiltersReset");
+  const filterShow = document.getElementById("catalogFiltersShow");
+  const activeFilters = document.getElementById("catalogActiveFilters");
   const chips = Array.from(document.querySelectorAll(".chip[data-filter]"));
   const params = new URLSearchParams(window.location.search);
   const categoryParam = params.get("category") || "";
@@ -94,6 +101,30 @@
     });
     grid.replaceChildren();
     resultCount.textContent = results.length + (results.length === 1 ? " product" : " products");
+    const activeCount = [category.value, brand.value, capacity.value, sort.value !== "default" ? sort.value : ""].filter(Boolean).length;
+    filterCount.textContent = String(activeCount);
+    filterCount.hidden = activeCount === 0;
+    filterShow.textContent = "Show " + results.length + (results.length === 1 ? " product" : " products");
+    activeFilters.replaceChildren();
+    [
+      [category, "Category"],
+      [brand, "Brand"],
+      [capacity, "Capacity"],
+      [sort.value !== "default" ? sort : null, "Sort"],
+    ].forEach(function (entry) {
+      const control = entry[0];
+      if (!control || !control.value) return;
+      const option = control.options[control.selectedIndex];
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.textContent = entry[1] + ": " + (option ? option.textContent : control.value) + " ×";
+      chip.setAttribute("aria-label", "Remove " + entry[1].toLowerCase() + " filter");
+      chip.addEventListener("click", function () {
+        control.value = control === sort ? "default" : "";
+        render();
+      });
+      activeFilters.appendChild(chip);
+    });
     if (!results.length) {
       const empty = document.createElement("div");
       empty.className = "catalog-empty";
@@ -110,6 +141,36 @@
     control.addEventListener("input", render);
     control.addEventListener("change", render);
   });
+
+  function setFilterSheetOpen(open) {
+    filterBackdrop.classList.toggle("open", open);
+    filterToggle.setAttribute("aria-expanded", open ? "true" : "false");
+    document.body.classList.toggle("filters-open", open);
+  }
+  filterToggle.addEventListener("click", function () {
+    if (!window.matchMedia("(max-width: 700px)").matches) {
+      category.focus();
+      return;
+    }
+    setFilterSheetOpen(!filterBackdrop.classList.contains("open"));
+  });
+  filterClose.addEventListener("click", function () { setFilterSheetOpen(false); });
+  filterBackdrop.addEventListener("click", function (event) {
+    if (event.target === filterBackdrop) setFilterSheetOpen(false);
+  });
+  filterReset.addEventListener("click", function () {
+    search.value = "";
+    category.value = "";
+    brand.value = "";
+    capacity.value = "";
+    sort.value = "default";
+    render();
+  });
+  filterShow.addEventListener("click", function () { setFilterSheetOpen(false); });
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape" && filterBackdrop.classList.contains("open")) setFilterSheetOpen(false);
+  });
+
   chips.forEach(function (chip) {
     chip.addEventListener("click", function () {
       category.value = chip.dataset.filter === "all" ? "" : chip.dataset.filter;
