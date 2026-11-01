@@ -149,6 +149,34 @@ function renderDatabaseOrder(order) {
 async function loadDatabaseOrders() {
   const state = document.getElementById("databaseOrdersState");
   const list = document.getElementById("databaseOrdersList");
+  const user = typeof getUser === "function" ? await getUser().catch(function (error) {
+    state.className = "database-orders-state error";
+    state.textContent = error.message || "Could not verify your account.";
+    return null;
+  }) : null;
+  if (user) {
+    list.replaceChildren();
+    state.className = "database-orders-state";
+    state.textContent = "Loading orders on your account…";
+    try {
+      const response = await authFetch("/api/orders/mine");
+      const data = await response.json().catch(function () { return {}; });
+      if (!response.ok) throw new Error(data.error || "Could not load your account orders.");
+      if (!Array.isArray(data)) throw new Error("The orders API returned an invalid response.");
+      data.forEach(function (order) { list.appendChild(renderDatabaseOrder(order)); });
+      state.textContent = data.length
+        ? data.length + (data.length === 1 ? " order linked to your account." : " orders linked to your account.")
+        : "Orders placed while signed in will appear here.";
+    } catch (error) {
+      state.className = "database-orders-state error";
+      state.textContent = error.message || "Could not load your account orders.";
+      const retry = myOrderElement("button", "Retry", "checkout-retry");
+      retry.type = "button";
+      retry.addEventListener("click", loadDatabaseOrders);
+      state.appendChild(retry);
+    }
+    return;
+  }
   const records = readCheckoutOrderAccess();
   list.replaceChildren();
   if (!records.length) {

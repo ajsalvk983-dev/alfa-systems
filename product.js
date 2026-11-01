@@ -136,7 +136,7 @@ if (!product) {
           "</div>" +
           '<div class="pd-actions">' +
             '<button type="button" class="pd-btn pd-btn-solid" onclick="buyNow()"><i class="fa-solid fa-arrow-right"></i> Buy now</button>' +
-            '<button type="button" class="pd-btn pd-btn-outline" onclick="addDetailToCart()">Add to cart</button>' +
+            '<button type="button" class="pd-btn pd-btn-outline glass" onclick="addDetailToCart()">Add to cart</button>' +
           "</div>" +
         "</div>" +
 

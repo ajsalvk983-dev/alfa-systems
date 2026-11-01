@@ -23,14 +23,17 @@
     </div>
 
     <div id="appView" class="app-shell" hidden>
-      <aside class="sidebar">
+      <button id="sidebarScrim" class="sidebar-scrim" type="button" aria-label="Close admin navigation" hidden></button>
+      <aside id="adminSidebar" class="sidebar">
         <a class="sidebar-brand" href="alfa.html"><span class="brand-mark"><img class="brand-logo" src="https://res.cloudinary.com/ddng8ksv6/image/upload/v1791894089/image-removebg-preview_mbsics.png" alt="" /></span><span>ALFA <b>SYSTEMS</b><small>STORE ADMIN</small></span></a>
         <p class="nav-label">WORKSPACE</p>
         <nav aria-label="Admin navigation">
           <a class="nav-link active" href="#dashboard" data-view="dashboard"><span aria-hidden="true">⌂</span> Overview</a>
           <a class="nav-link" href="#catalogue" data-view="catalogue"><span aria-hidden="true">▦</span> Products</a>
           <a class="nav-link" href="#orders" data-view="orders"><span aria-hidden="true">▤</span> Orders</a>
+          <a class="nav-link" href="#customers" data-view="customers"><span aria-hidden="true">♙</span> Customers</a>
           <a class="nav-link" href="#service-requests" data-view="service-requests"><span aria-hidden="true">⚒</span> Service requests</a>
+          <a class="nav-link" href="#settings" data-view="settings"><span aria-hidden="true">⚙</span> Settings</a>
         </nav>
         <div class="sidebar-bottom">
           <span class="connection-dot"></span>
@@ -41,8 +44,11 @@
 
       <main class="main-area">
         <header class="topbar">
-          <div><p class="eyebrow">STORE MANAGEMENT</p><h1 id="pageTitle">Overview</h1></div>
+          <div class="topbar-title"><button id="sidebarToggle" class="sidebar-toggle" type="button" aria-label="Open admin navigation" aria-expanded="false">☰</button><div><p class="eyebrow">STORE MANAGEMENT</p><h1 id="pageTitle">Overview</h1></div></div>
           <div class="topbar-actions">
+            <label class="admin-global-search"><span aria-hidden="true">⌕</span><input id="adminGlobalSearch" type="search" placeholder="Search products..." autocomplete="off" /></label>
+            <button id="newOrdersButton" class="notification-button" type="button" aria-label="Open pending orders"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></svg><span id="newOrderCount" hidden>0</span></button>
+            <span class="admin-profile" aria-label="Administrator profile"><span class="admin-profile-initial">A</span><b>Admin</b></span>
             <a class="store-link" href="alfa.html" target="_blank" rel="noopener">View store <span aria-hidden="true">↗</span></a>
             <button id="addProductTop" class="button button-primary" type="button" hidden>＋ Add product</button>
           </div>
@@ -57,8 +63,25 @@
             <article class="stat-card"><span class="stat-icon">▦</span><div><p>Total products</p><strong id="dashboardTotalProducts">—</strong></div></article>
             <article class="stat-card"><span class="stat-icon stat-icon-green">▤</span><div><p>Total orders</p><strong id="totalOrders">—</strong></div></article>
             <article class="stat-card"><span class="stat-icon stat-icon-orange">◷</span><div><p>Pending orders</p><strong id="pendingOrders">—</strong></div></article>
+            <article class="stat-card"><span class="stat-icon stat-icon-green">♙</span><div><p>Customers</p><strong id="dashboardCustomers">—</strong></div></article>
+            <article class="stat-card"><span class="stat-icon">₹</span><div><p>Recorded revenue</p><strong id="dashboardRevenue">—</strong></div></article>
           </div>
           <p id="summaryState" class="panel-state" role="status" aria-live="polite" hidden></p>
+          <section class="dashboard-analytics">
+            <article class="panel">
+              <div class="panel-heading"><div><h2>Sales overview</h2><p class="muted">Orders and recorded revenue.</p></div><label class="period-filter">Period<select id="statsPeriod"><option value="monthly">Monthly</option><option value="quarterly">Quarterly</option><option value="yearly">Yearly</option></select></label></div>
+              <div id="statsState" class="panel-state" role="status" aria-live="polite">Loading dashboard statistics…</div>
+              <div id="salesChart" class="sales-chart" aria-label="Sales chart"></div>
+            </article>
+            <article class="panel">
+              <div class="panel-heading"><div><h2>Top categories</h2><p class="muted">By units ordered.</p></div></div>
+              <div class="category-chart"><div id="categoryDonut" class="category-donut" role="img" aria-label="Top categories chart"></div><div id="categoryLegend" class="category-legend"></div></div>
+            </article>
+            <article class="panel dashboard-top-products">
+              <div class="panel-heading"><div><h2>Top products</h2><p class="muted">Most ordered catalogue items.</p></div></div>
+              <div class="table-scroll"><table class="products-table"><thead><tr><th>PRODUCT</th><th>UNITS</th></tr></thead><tbody id="topProductsBody"></tbody></table></div>
+            </article>
+          </section>
           <section class="overview-grid">
             <article class="panel">
               <div class="panel-heading">
@@ -119,7 +142,7 @@
 
         <section id="ordersView" class="page-view" hidden>
           <section class="panel">
-            <div class="panel-heading"><div><h2>Order management</h2><p class="muted">Browse all orders, 50 at a time, and manage their status.</p></div><button id="refreshOrders" class="button button-secondary" type="button">Refresh</button></div>
+            <div class="panel-heading"><div><h2>Order management</h2><p class="muted">Browse all orders, 50 at a time, and manage their status.</p></div><div class="orders-toolbar"><label class="search-box"><span aria-hidden="true">⌕</span><input id="ordersSearch" type="search" placeholder="Search orders..." autocomplete="off" /></label><select id="ordersStatusFilter" aria-label="Filter by order status"><option value="">All statuses</option><option>Pending</option><option>Confirmed</option><option>Processing</option><option>Ready</option><option>Shipped</option><option>Out for Delivery</option><option>Delivered</option><option>Cancelled</option></select><button id="exportOrders" class="button button-secondary" type="button">Export CSV</button><button id="refreshOrders" class="button button-secondary" type="button">Refresh</button></div></div>
             <div id="ordersState" class="panel-state" role="status" aria-live="polite">Loading orders...</div>
             <div id="ordersTableWrap" class="table-scroll" hidden>
               <table class="orders-table">
@@ -134,11 +157,32 @@
           </section>
         </section>
 
+        <section id="customersView" class="page-view" hidden>
+          <section class="panel">
+            <div class="panel-heading"><div><h2>Customer accounts</h2><p class="muted">Search registered customers, manage access and set temporary passwords.</p></div><label class="search-box"><span aria-hidden="true">⌕</span><input id="customerSearch" type="search" placeholder="Search customers..." autocomplete="off" /></label></div>
+            <div id="customersState" class="panel-state" role="status" aria-live="polite">Loading customer accounts…</div>
+            <div class="table-scroll"><table class="products-table"><thead><tr><th>CUSTOMER</th><th>JOINED</th><th>ORDERS</th><th>STATUS</th><th>ACTIONS</th></tr></thead><tbody id="customersBody"></tbody></table></div>
+          </section>
+        </section>
+
         <section id="serviceRequestsView" class="page-view" hidden>
           <section class="panel">
             <div class="panel-heading"><div><h2>Service requests</h2><p class="muted">Review customer enquiries and update their status.</p></div><button id="refreshServiceRequests" class="button button-secondary" type="button">Refresh</button></div>
             <div id="serviceRequestsState" class="panel-state" role="status" aria-live="polite">Load service requests to review customer enquiries.</div>
             <div id="serviceRequestsList" class="service-requests-list"></div>
+          </section>
+        </section>
+
+        <section id="settingsView" class="page-view" hidden>
+          <section class="panel settings-panel">
+            <div class="panel-heading"><div><h2>Store settings</h2><p class="muted">Configure image uploads for this admin browser.</p></div></div>
+            <form id="settingsForm" class="settings-form">
+              <label class="form-field">Cloudinary cloud name<input id="settingsCloudName" autocomplete="on" /></label>
+              <label class="form-field">Unsigned upload preset<input id="settingsUploadPreset" autocomplete="on" /></label>
+              <p class="help-text">These values are saved in this browser only. Never enter your Cloudinary API secret here.</p>
+              <p id="settingsMessage" class="status-text" role="status" aria-live="polite"></p>
+              <button id="saveSettings" class="button button-primary" type="submit">Save settings</button>
+            </form>
           </section>
         </section>
       </main>
@@ -197,8 +241,8 @@
                     <select id="productCategory" name="category"><option value="">Select category</option></select>
                   </label>
                   <label class="form-field span-2">Description <textarea id="productDescription" name="description" rows="4" maxlength="2000"></textarea></label>
-                  <label class="form-field">Price (₹) <input id="productPrice" name="price" type="text" inputmode="decimal" placeholder="e.g. 12500 or From ₹900" maxlength="80" /></label>
-                  <label class="form-field">Old price (₹) <input id="productOldPrice" name="oldPrice" type="number" min="0" step="0.01" /></label>
+                  <label class="form-field">Price (₹) <input id="productPrice" name="price" type="number" min="0" max="99999999" step="0.01" inputmode="decimal" placeholder="e.g. 12500" /><small>Leave blank to show Ask price.</small></label>
+                  <label class="form-field">Old price (₹) <input id="productOldPrice" name="oldPrice" type="number" min="0" max="99999999" step="0.01" inputmode="decimal" /></label>
                   <label class="form-field span-2">Price note <input id="productPriceNote" name="priceNote" maxlength="120" placeholder="Inclusive of GST" /></label>
                   <label class="form-field">Capacity <input id="productCapacity" name="capacity" maxlength="40" placeholder="e.g. 30 kg" /></label>
                   <label class="form-field">Accuracy <input id="productAccuracy" name="accuracy" maxlength="80" placeholder="e.g. 1 g" /></label>

@@ -262,9 +262,21 @@ if (heroZone && heroCarousel && window.jQuery) {
   const activeSlide = slides.indexOf(heroCarousel.querySelector(".carousel-item.active"));
   if (activeSlide >= 0) {
     heroZone.dataset.slide = activeSlide + 1;
+    document.documentElement.dataset.palette = String(activeSlide + 1);
+    try {
+      sessionStorage.setItem("alfaPalette", String(activeSlide + 1));
+    } catch (error) {
+      console.warn("Could not save the selected colour palette.", error);
+    }
   }
   window.jQuery(heroCarousel).on("slide.bs.carousel", function (e) {
     heroZone.dataset.slide = e.to + 1;
+    document.documentElement.dataset.palette = String(e.to + 1);
+    try {
+      sessionStorage.setItem("alfaPalette", String(e.to + 1));
+    } catch (error) {
+      console.warn("Could not save the selected colour palette.", error);
+    }
   });
   if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     window.jQuery(heroCarousel).carousel("pause");
@@ -451,12 +463,18 @@ function sendOrderToServer(cart) {
     .filter(function (item) { return item.id; })
     .map(function (item) { return { id: item.id, qty: item.qty }; });
   if (!items.length) return;
+  const headers = { "Content-Type": "application/json" };
+  if (typeof getAuthToken === "function" && getAuthToken()) {
+    headers.Authorization = "Bearer " + getAuthToken();
+  }
   fetch(API_URL + "/api/orders", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: headers,
     body: JSON.stringify({ items: items }),
     keepalive: true,
-  }).catch(function () {});
+  }).catch(function (error) {
+    console.warn("Could not save the WhatsApp order to the store API:", error.message);
+  });
 }
 
 function placeOrder() {
@@ -607,11 +625,47 @@ function setupSearchDropdown() {
   const panel = document.createElement("div");
   panel.className = "search-panel";
   panel.hidden = true;
-  host.appendChild(panel);
+  document.body.appendChild(panel);
+  const clear = document.createElement("button");
+  clear.type = "button";
+  clear.className = "search-clear";
+  clear.setAttribute("aria-label", "Clear search");
+  clear.textContent = "×";
+  clear.hidden = true;
+  host.appendChild(clear);
+  const homePage = document.body.classList.contains("home-page");
+
+  function positionPanel() {
+    if (panel.hidden) return;
+    const bounds = input.getBoundingClientRect();
+    const mobile = window.matchMedia("(max-width: 600px)").matches;
+    const width = Math.min(window.innerWidth - 24, mobile ? window.innerWidth - 24 : Math.max(bounds.width, 360));
+    const left = mobile ? 12 : Math.max(12, Math.min(bounds.left, window.innerWidth - width - 12));
+    panel.style.left = left + "px";
+    panel.style.top = Math.min(bounds.bottom + 8, window.innerHeight - 80) + "px";
+    panel.style.width = width + "px";
+  }
 
   function goToResults(categoryValue) {
     panel.hidden = true;
     const query = input.value.trim();
+    if (homePage) {
+      if (categoryValue) {
+        input.value = "";
+        clear.hidden = true;
+        document.querySelectorAll(".chip[data-filter]").forEach(function (chip) {
+          const selected = chip.dataset.filter === categoryValue;
+          chip.classList.toggle("active", selected);
+          chip.setAttribute("aria-pressed", selected ? "true" : "false");
+        });
+        activeCategory = categoryValue;
+      }
+      searchText = query.toLowerCase();
+      applyFilters();
+      const productsSection = document.getElementById("products");
+      if (productsSection) productsSection.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
     const params = new URLSearchParams();
     if (categoryValue) params.set("category", categoryValue);
     else if (query) params.set("q", query);
@@ -646,6 +700,7 @@ function setupSearchDropdown() {
     if (!matches.length && !suggestions.length) {
       panel.innerHTML = '<p class="search-empty">No products found. Try another word.</p>';
       panel.hidden = false;
+      positionPanel();
       return;
     }
 
@@ -676,6 +731,7 @@ function setupSearchDropdown() {
       "</div>" +
       (matches.length ? '<div class="search-foot"><button type="button" class="search-all">View all results</button></div>' : "");
     panel.hidden = false;
+    positionPanel();
   }
 
   panel.addEventListener("click", function (e) {
@@ -697,15 +753,48 @@ function setupSearchDropdown() {
   input.addEventListener("focus", render);
   input.addEventListener("keydown", function (e) {
     if (e.key === "Enter") goToResults();
-    if (e.key === "Escape") panel.hidden = true;
+    if (e.key === "Escape") {
+      panel.hidden = true;
+      host.classList.remove("search-open");
+    }
+    if (e.key === "ArrowDown" && !panel.hidden) {
+      const firstResult = panel.querySelector(".search-sugg, .search-product, .search-all");
+      if (firstResult) {
+        e.preventDefault();
+        firstResult.focus();
+      }
+    }
   });
 
   const icon = host.querySelector(".search-icon");
-  if (icon) icon.addEventListener("click", goToResults);
+  if (icon) icon.addEventListener("click", function () {
+    if (window.matchMedia("(max-width: 600px)").matches && !host.classList.contains("search-open")) {
+      host.classList.add("search-open");
+      input.focus();
+      return;
+    }
+    goToResults();
+  });
+  clear.addEventListener("click", function () {
+    input.value = "";
+    searchText = "";
+    panel.hidden = true;
+    clear.hidden = true;
+    applyFilters();
+    input.focus();
+  });
+  input.addEventListener("input", function () {
+    clear.hidden = !input.value;
+  });
 
   document.addEventListener("click", function (e) {
-    if (!host.contains(e.target)) panel.hidden = true;
+    if (!host.contains(e.target) && !panel.contains(e.target)) {
+      panel.hidden = true;
+      host.classList.remove("search-open");
+    }
   });
+  window.addEventListener("resize", positionPanel);
+  window.addEventListener("scroll", positionPanel, true);
 }
 
 function createProductCard(p) {

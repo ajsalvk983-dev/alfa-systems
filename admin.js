@@ -1,6 +1,8 @@
 const PW_KEY = "alfaAdminPw";
-const CLOUD_NAME_KEY = "ddng8ksv6";
-const UPLOAD_PRESET_KEY = "alfa_products";
+const CLOUD_NAME_KEY = "alfaCloudinaryCloudName";
+const UPLOAD_PRESET_KEY = "alfaCloudinaryUploadPreset";
+const CLOUD_NAME_DEFAULT = "ddng8ksv6";
+const UPLOAD_PRESET_DEFAULT = "alfa_products";
 const ORDER_STATUSES = [
   "Pending",
   "Confirmed",
@@ -15,9 +17,13 @@ let adminPw = sessionStorage.getItem(PW_KEY) || "";
 let productList = [];
 let categoryList = [];
 let orderList = [];
+let customerList = [];
 let serviceRequestList = [];
 let ordersOffset = 0;
 let totalOrdersCount = 0;
+let customerSearchTimer = 0;
+let customerSearchRequest = 0;
+let dashboardStatsRequest = 0;
 let editorImages = [];
 let mainImageIndex = 0;
 let editingProduct = false;
@@ -34,7 +40,7 @@ function el(tag, text, className) {
   return node;
 }
 
-function confirmAdminAction(message) {
+function confirmAdminAction(message, actionLabel) {
   return new Promise(function (resolve) {
     const dialog = document.createElement("dialog");
     dialog.className = "admin-confirm-dialog";
@@ -42,7 +48,7 @@ function confirmAdminAction(message) {
     const detail = el("p", message);
     const actions = el("div", null, "admin-confirm-actions");
     const cancel = el("button", "Cancel", "button button-secondary");
-    const accept = el("button", "Delete product", "button button-danger");
+    const accept = el("button", actionLabel || "Delete product", "button button-danger");
     cancel.type = "button";
     accept.type = "button";
     actions.append(cancel, accept);
@@ -302,9 +308,17 @@ function renderProducts() {
     const edit = el("button", "Edit", "table-action");
     edit.type = "button";
     edit.addEventListener("click", function () { openEditor(p); });
-    const remove = el("button", "Delete", "table-action delete");
+    const remove = el("button", p.isActive ? (p.isOrdered ? "Archive" : "Delete") : "Show", "table-action" + (p.isActive && !p.isOrdered ? " delete" : ""));
     remove.type = "button";
-    remove.addEventListener("click", function () { deleteProduct(p); });
+    remove.addEventListener("click", function () {
+      if (p.isOrdered) {
+        setProductVisibility(p, false, remove);
+      } else if (!p.isActive) {
+        setProductVisibility(p, true, remove);
+      } else {
+        deleteProduct(p, remove);
+      }
+    });
     actions.append(edit, remove);
     actionsTd.appendChild(actions);
     row.append(productTd, categoryTd, priceTd, imagesTd, actionsTd);
@@ -312,8 +326,10 @@ function renderProducts() {
   });
   $("emptyProducts").hidden = filtered.length > 0;
   $("totalProducts").textContent = String(productList.length);
-  $("dashboardTotalProducts").textContent = String(productList.length);
-  $("pricedProducts").textContent = String(productList.filter(function (p) { return Boolean(p.price); }).length);
+  $("dashboardTotalProducts").textContent = String(productList.filter(function (p) { return p.isActive !== false; }).length);
+  $("pricedProducts").textContent = String(productList.filter(function (p) {
+    return p.price !== null && p.price !== undefined && p.price !== "" && Number.isFinite(Number(p.price));
+  }).length);
   $("lastRefreshed").textContent = new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
 }
 
@@ -329,8 +345,8 @@ async function loadProducts() {
   loadingRow.appendChild(loadingCell);
   $("products").appendChild(loadingRow);
   try {
-    const res = await fetch(API_URL + "/api/products");
-    if (!res.ok) throw new Error("Product request failed (" + res.status + ")");
+    const res = await adminFetch("/api/admin/products");
+    if (!res.ok) throw new Error(await apiErrorMessage(res, "load products"));
     const list = await res.json();
     if (!Array.isArray(list)) throw new Error("The product API returned an invalid response.");
     productList = list;
@@ -406,6 +422,9 @@ async function loadOrderSummary() {
     }
     $("totalOrders").textContent = Number(summary.totalOrders).toLocaleString("en-IN");
     $("pendingOrders").textContent = Number(summary.pendingOrders).toLocaleString("en-IN");
+    const newOrderCount = $("newOrderCount");
+    newOrderCount.textContent = Number(summary.pendingOrders).toLocaleString("en-IN");
+    newOrderCount.hidden = Number(summary.pendingOrders) < 1;
     totalOrdersCount = Number(summary.totalOrders);
     updateOrdersPagination();
     state.hidden = true;
@@ -418,6 +437,119 @@ async function loadOrderSummary() {
       retry.addEventListener("click", loadOrderSummary);
       state.appendChild(retry);
     }
+  }
+}
+
+function renderSalesChart(sales) {
+  const chart = $("salesChart");
+  chart.replaceChildren();
+  const maxRevenue = Math.max.apply(null, sales.map(function (item) { return item.revenue; }).concat([0]));
+  sales.forEach(function (item) {
+    const group = el("div", null, "sales-bar-group");
+    const amount = el("span", displayPrice(item.revenue), "sales-bar-value");
+    const track = el("div", null, "sales-bar-track");
+    const bar = el("span", null, "sales-bar-fill");
+    const height = maxRevenue > 0 ? Math.max(item.revenue > 0 ? 5 : 0, (item.revenue / maxRevenue) * 100) : 0;
+    bar.style.height = height + "%";
+    track.title = item.label + ": " + displayPrice(item.revenue) + " · " + item.orders + " orders";
+    track.appendChild(bar);
+    group.append(amount, track, el("span", item.label, "sales-bar-label"));
+    chart.appendChild(group);
+  });
+}
+
+function renderCategoryChart(categories) {
+  const donut = $("categoryDonut");
+  const legend = $("categoryLegend");
+  const colors = ["#176345", "#5a9a70", "#9bbc8c", "#d0a45f", "#85a7a0"];
+  donut.style.background = "conic-gradient(#e9eee9 0deg 360deg)";
+  legend.replaceChildren();
+  const total = categories.reduce(function (sum, category) { return sum + category.quantity; }, 0);
+  if (!total) {
+    legend.appendChild(el("p", "No category sales yet.", "muted"));
+    return;
+  }
+  let current = 0;
+  const slices = categories.map(function (category, index) {
+    const end = current + category.quantity / total * 360;
+    const slice = colors[index % colors.length] + " " + current + "deg " + end + "deg";
+    current = end;
+    const row = el("div", null, "category-legend-item");
+    const swatch = el("span", null, "category-swatch");
+    swatch.style.backgroundColor = colors[index % colors.length];
+    row.append(swatch, el("span", category.name), el("b", category.quantity.toLocaleString("en-IN")));
+    legend.appendChild(row);
+    return slice;
+  });
+  donut.style.background = "conic-gradient(" + slices.join(", ") + ")";
+  donut.setAttribute("aria-label", categories.map(function (item) {
+    return item.name + ": " + item.quantity;
+  }).join(", "));
+}
+
+function renderTopProducts(products) {
+  const body = $("topProductsBody");
+  body.replaceChildren();
+  if (!products.length) {
+    const row = el("tr");
+    const cell = el("td", "No product sales yet.");
+    cell.colSpan = 2;
+    row.appendChild(cell);
+    body.appendChild(row);
+    return;
+  }
+  products.forEach(function (product) {
+    const row = el("tr");
+    row.append(el("td", product.name || "Unnamed product"), el("td", product.quantity.toLocaleString("en-IN")));
+    body.appendChild(row);
+  });
+}
+
+async function loadDashboardStats() {
+  const requestId = ++dashboardStatsRequest;
+  const state = $("statsState");
+  state.hidden = false;
+  state.className = "panel-state";
+  state.textContent = "Loading dashboard statistics…";
+  try {
+    const period = $("statsPeriod").value;
+    const response = await adminFetch("/api/admin/stats?period=" + encodeURIComponent(period));
+    if (!response.ok) throw new Error(await apiErrorMessage(response, "load dashboard statistics"));
+    const stats = await response.json();
+    if (requestId !== dashboardStatsRequest) return;
+    const kpis = stats && stats.kpis;
+    if (!kpis || !["products", "orders", "pendingOrders", "customers", "revenue"].every(function (key) {
+      return Number.isFinite(Number(kpis[key]));
+    }) || !Array.isArray(stats.sales) || !Array.isArray(stats.topCategories) || !Array.isArray(stats.topProducts)) {
+      throw new Error("The dashboard statistics API returned an invalid response.");
+    }
+    $("dashboardTotalProducts").textContent = Number(kpis.products).toLocaleString("en-IN");
+    $("totalOrders").textContent = Number(kpis.orders).toLocaleString("en-IN");
+    $("pendingOrders").textContent = Number(kpis.pendingOrders).toLocaleString("en-IN");
+    $("dashboardCustomers").textContent = Number(kpis.customers).toLocaleString("en-IN");
+    $("dashboardRevenue").textContent = displayPrice(Number(kpis.revenue));
+    renderSalesChart(stats.sales.map(function (item) {
+      return { label: String(item.label), orders: Number(item.orders) || 0, revenue: Number(item.revenue) || 0 };
+    }));
+    renderCategoryChart(stats.topCategories.map(function (item) {
+      return { name: String(item.name), quantity: Number(item.quantity) || 0 };
+    }));
+    renderTopProducts(stats.topProducts.map(function (item) {
+      return { name: String(item.name), quantity: Number(item.quantity) || 0 };
+    }));
+    if (stats.sales.length) {
+      state.hidden = true;
+    } else {
+      state.textContent = "No sales have been recorded for this period yet.";
+    }
+  } catch (error) {
+    if (requestId !== dashboardStatsRequest) return;
+    state.className = "panel-state error";
+    state.textContent = (error.message || "Could not load dashboard statistics.") + " ";
+    const retry = el("button", "Retry", "text-button");
+    retry.type = "button";
+    retry.addEventListener("click", loadDashboardStats);
+    state.appendChild(retry);
   }
 }
 
@@ -455,7 +587,25 @@ function renderOrders() {
     return;
   }
 
-  orderList.forEach(function (order) {
+  const search = $("ordersSearch").value.trim().toLowerCase();
+  const statusFilter = $("ordersStatusFilter").value;
+  const visibleOrders = orderList.filter(function (order) {
+    const matchesStatus = !statusFilter || order.status === statusFilter;
+    const searchable = [
+      order.id, order.customerName, order.email, order.phone, orderProductsSummary(order),
+    ].join(" ").toLowerCase();
+    return matchesStatus && (!search || searchable.includes(search));
+  });
+  if (!visibleOrders.length) {
+    $("ordersState").hidden = false;
+    $("ordersState").textContent = "No orders match the selected search and filters.";
+    $("ordersTableWrap").hidden = true;
+  } else {
+    $("ordersState").hidden = true;
+    $("ordersTableWrap").hidden = false;
+  }
+
+  visibleOrders.forEach(function (order) {
     const items = Array.isArray(order.items) ? order.items : [];
     const row = el("tr");
     const idCell = el("td");
@@ -488,9 +638,6 @@ function renderOrders() {
     );
     body.appendChild(row);
   });
-  $("ordersState").hidden = true;
-  $("ordersTableWrap").hidden = false;
-
   orderList.slice(0, 5).forEach(function (order) {
     const item = el("article", null, "recent-order");
     const main = el("div", null, "recent-order-main");
@@ -511,6 +658,57 @@ function renderOrders() {
   $("recentOrdersState").hidden = true;
   recent.hidden = false;
   updateOrdersPagination();
+}
+
+function csvCell(value) {
+  let text = value === null || value === undefined ? "" : String(value);
+  if (/^[\s]*[=+\-@]/.test(text)) text = "'" + text;
+  return '"' + text.replace(/"/g, '""') + '"';
+}
+
+async function exportOrdersCsv() {
+  const button = $("exportOrders");
+  button.disabled = true;
+  const originalText = button.textContent;
+  button.textContent = "Preparing…";
+  try {
+    const orders = [];
+    for (let offset = 0; offset < totalOrdersCount; offset += 50) {
+      const response = await adminFetch("/api/admin/orders?offset=" + offset);
+      if (!response.ok) throw new Error(await apiErrorMessage(response, "export orders"));
+      const page = await response.json();
+      if (!Array.isArray(page)) throw new Error("The orders API returned an invalid response.");
+      orders.push.apply(orders, page);
+      if (page.length < 50) break;
+    }
+    const columns = ["Order ID", "Created", "Customer", "Email", "Phone", "Address", "Items", "Subtotal", "Delivery charge", "Total", "Payment method", "Payment status", "Order status"];
+    const rows = [columns].concat(orders.map(function (order) {
+      const items = (Array.isArray(order.items) ? order.items : []).map(function (item) {
+        return (item.qty || 0) + " x " + (item.name || "Product");
+      }).join("; ");
+      return [
+        order.id, order.createdAt, order.customerName, order.email, order.phone,
+        order.address, items, order.subtotal, order.deliveryCharge, order.totalAmount,
+        order.paymentMethod, order.paymentStatus, order.status,
+      ];
+    }));
+    const csv = rows.map(function (row) { return row.map(csvCell).join(","); }).join("\r\n");
+    const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = el("a");
+    link.href = url;
+    link.download = "alfa-orders-" + new Date().toISOString().slice(0, 10) + ".csv";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    setGlobalMessage("Exported " + orders.length.toLocaleString("en-IN") + " orders to CSV.");
+  } catch (error) {
+    setGlobalMessage(error.message || "Could not export orders.", true);
+  } finally {
+    button.disabled = false;
+    button.textContent = originalText;
+  }
 }
 
 function updateOrdersPagination() {
@@ -763,8 +961,8 @@ function openEditor(product) {
     mainImageIndex = Math.max(0, editorImages.indexOf(product.image));
     renderImages();
   }
-  $("cloudName").value = localStorage.getItem(CLOUD_NAME_KEY) || "";
-  $("uploadPreset").value = localStorage.getItem(UPLOAD_PRESET_KEY) || "";
+  $("cloudName").value = localStorage.getItem(CLOUD_NAME_KEY) || CLOUD_NAME_DEFAULT;
+  $("uploadPreset").value = localStorage.getItem(UPLOAD_PRESET_KEY) || UPLOAD_PRESET_DEFAULT;
   updatePreview();
   $("editorModal").hidden = false;
   $("productName").focus();
@@ -778,11 +976,11 @@ function updatePreview() {
   $("previewName").textContent = $("productName").value.trim() || "Product name";
   $("previewDescription").textContent = $("productDescription").value.trim() || "Your product description will appear here.";
   $("previewCategory").textContent = categoryLabel($("productCategory").value).toUpperCase();
-  const price = $("productPrice").value.trim();
-  $("previewPrice").textContent = price ? displayPrice(price) : "Price on request";
-  const oldPrice = $("productOldPrice").value.trim();
+  const price = $("productPrice").value;
+  $("previewPrice").textContent = price ? displayPrice(Number(price)) : "Price on request";
+  const oldPrice = $("productOldPrice").value;
   $("previewOldPrice").hidden = !oldPrice;
-  $("previewOldPrice").textContent = oldPrice ? displayPrice(oldPrice) : "";
+  $("previewOldPrice").textContent = oldPrice ? displayPrice(Number(oldPrice)) : "";
   const image = $("previewImage");
   const placeholder = $("previewImageWrap").querySelector(".preview-placeholder");
   const src = editorImages[mainImageIndex];
@@ -814,8 +1012,8 @@ function collectProduct() {
     brand: $("productBrand").value.trim(),
     category: $("productCategory").value,
     description: $("productDescription").value.trim(),
-    price: $("productPrice").value.trim(),
-    oldPrice: $("productOldPrice").value.trim(),
+    price: $("productPrice").value === "" ? null : Number($("productPrice").value),
+    oldPrice: $("productOldPrice").value === "" ? null : Number($("productOldPrice").value),
     priceNote: $("productPriceNote").value.trim(),
     capacity: $("productCapacity").value.trim(),
     accuracy: $("productAccuracy").value.trim(),
@@ -825,13 +1023,14 @@ function collectProduct() {
     images: orderedImages,
     image: orderedImages[0] || "",
   };
-  if (!product.price) delete product.price;
-  if (!product.oldPrice) delete product.oldPrice;
+  if (product.price === null) delete product.price;
+  if (product.oldPrice === null) delete product.oldPrice;
   return product;
 }
 
 async function saveProduct(event) {
   event.preventDefault();
+  if (!$("productForm").reportValidity()) return;
   const product = collectProduct();
   if (!product.name) {
     $("productName").focus();
@@ -865,14 +1064,46 @@ async function saveProduct(event) {
   }
 }
 
-async function deleteProduct(product) {
+async function deleteProduct(product, button) {
   if (!await confirmAdminAction('Delete "' + (product.name || "this product") + '"? This cannot be undone.')) return;
+  const previousText = button.textContent;
+  button.disabled = true;
+  button.textContent = "Deleting…";
   try {
     const res = await adminFetch("/api/admin/products/" + encodeURIComponent(product.id), { method: "DELETE" });
     if (!res.ok) throw new Error(await apiErrorMessage(res, "delete this product"));
-    if (await loadProducts()) setGlobalMessage("Product deleted.");
+    const result = await res.json();
+    if (await loadProducts()) setGlobalMessage(result.archived ? "Product archived because it appears in an order." : "Product deleted.");
   } catch (err) {
     setGlobalMessage(err.message || "Could not delete product.", true);
+  } finally {
+    if (button.isConnected) {
+      button.disabled = false;
+      button.textContent = previousText;
+    }
+  }
+}
+
+async function setProductVisibility(product, isActive, button) {
+  const action = isActive ? "show" : "archive";
+  if (!await confirmAdminAction((isActive ? "Show " : "Archive ") + '"' + (product.name || "this product") + '"?', isActive ? "Show product" : "Archive product")) return;
+  const previousText = button.textContent;
+  button.disabled = true;
+  button.textContent = isActive ? "Showing…" : "Archiving…";
+  try {
+    const res = await adminFetch("/api/admin/products/" + encodeURIComponent(product.id) + "/visibility", {
+      method: "PATCH",
+      body: JSON.stringify({ isActive: isActive }),
+    });
+    if (!res.ok) throw new Error(await apiErrorMessage(res, action + " this product"));
+    if (await loadProducts()) setGlobalMessage(isActive ? "Product is visible in the store." : "Product archived.");
+  } catch (err) {
+    setGlobalMessage(err.message || "Could not update product visibility.", true);
+  } finally {
+    if (button.isConnected) {
+      button.disabled = false;
+      button.textContent = previousText;
+    }
   }
 }
 
@@ -933,6 +1164,110 @@ function addImageUrl() {
   } catch (err) {
     $("editorStatus").textContent = err.message || "Enter a valid image URL.";
     $("editorStatus").className = "status-text error";
+  }
+}
+
+function renderCustomers() {
+  const body = $("customersBody");
+  const state = $("customersState");
+  body.replaceChildren();
+  if (!customerList.length) {
+    state.hidden = false;
+    state.className = "panel-state";
+    state.textContent = $("customerSearch").value.trim()
+      ? "No customers match your search."
+      : "No customer accounts have been created yet.";
+    return;
+  }
+  state.hidden = true;
+  customerList.forEach(function (customer) {
+    const row = el("tr");
+    const identity = el("td", null, "customer-identity");
+    identity.append(el("strong", customer.name || "Unnamed customer"), el("small", customer.email || "—"));
+    const joinedDate = new Date(customer.joinedAt);
+    const joined = Number.isNaN(joinedDate.getTime()) ? "—" : joinedDate.toLocaleDateString("en-IN");
+    const status = el("span", customer.isEnabled ? "Enabled" : "Disabled", "status-pill " + (customer.isEnabled ? "status-ready" : "status-cancelled"));
+    const actions = el("td", null, "table-actions customer-actions");
+    const toggle = el("button", customer.isEnabled ? "Disable" : "Enable", "table-action");
+    toggle.type = "button";
+    toggle.addEventListener("click", function () { updateCustomerStatus(customer, !customer.isEnabled); });
+    const reset = el("button", "Set temp password", "table-action");
+    reset.type = "button";
+    reset.addEventListener("click", function () { resetCustomerPassword(customer); });
+    actions.append(toggle, reset);
+    row.append(identity, el("td", joined), el("td", Number(customer.ordersCount || 0).toLocaleString("en-IN")), el("td", null));
+    row.lastChild.appendChild(status);
+    row.appendChild(actions);
+    body.appendChild(row);
+  });
+}
+
+async function loadCustomers() {
+  const requestId = ++customerSearchRequest;
+  const state = $("customersState");
+  state.hidden = false;
+  state.className = "panel-state";
+  state.textContent = "Loading customer accounts…";
+  const query = $("customerSearch").value.trim();
+  try {
+    const response = await adminFetch("/api/admin/customers?q=" + encodeURIComponent(query));
+    if (!response.ok) throw new Error(await apiErrorMessage(response, "load customer accounts"));
+    const customers = await response.json();
+    if (requestId !== customerSearchRequest) return;
+    if (!Array.isArray(customers) || customers.some(function (customer) {
+      return !customer || !Number.isSafeInteger(Number(customer.id)) || typeof customer.email !== "string";
+    })) {
+      throw new Error("The customer API returned an invalid response.");
+    }
+    customerList = customers;
+    renderCustomers();
+  } catch (error) {
+    if (requestId !== customerSearchRequest) return;
+    state.className = "panel-state error";
+    state.textContent = (error.message || "Could not load customer accounts.") + " ";
+    const retry = el("button", "Retry", "text-button");
+    retry.type = "button";
+    retry.addEventListener("click", loadCustomers);
+    state.appendChild(retry);
+  }
+}
+
+async function updateCustomerStatus(customer, isEnabled) {
+  const verb = isEnabled ? "Enable" : "Disable";
+  if (!await confirmAdminAction(verb + " customer account for " + customer.email + "?", verb + " account")) return;
+  try {
+    const response = await adminFetch("/api/admin/customers/" + encodeURIComponent(customer.id) + "/status", {
+      method: "PATCH",
+      body: JSON.stringify({ isEnabled: isEnabled }),
+    });
+    if (!response.ok) throw new Error(await apiErrorMessage(response, verb.toLowerCase() + " customer"));
+    customer.isEnabled = isEnabled;
+    renderCustomers();
+    setGlobalMessage("Customer account " + (isEnabled ? "enabled." : "disabled."));
+  } catch (error) {
+    setGlobalMessage(error.message || "Could not update customer status.", true);
+  }
+}
+
+async function resetCustomerPassword(customer) {
+  if (!await confirmAdminAction("Set a temporary password for " + customer.email + "? Share the generated password securely.", "Set password")) return;
+  if (!window.crypto || typeof window.crypto.getRandomValues !== "function") {
+    setGlobalMessage("Secure password generation is unavailable in this browser.", true);
+    return;
+  }
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
+  const random = new Uint8Array(20);
+  window.crypto.getRandomValues(random);
+  const password = Array.from(random, function (value) { return alphabet[value % alphabet.length]; }).join("");
+  try {
+    const response = await adminFetch("/api/admin/customers/" + encodeURIComponent(customer.id) + "/password", {
+      method: "PATCH",
+      body: JSON.stringify({ password: password }),
+    });
+    if (!response.ok) throw new Error(await apiErrorMessage(response, "set temporary password"));
+    setGlobalMessage("Temporary password for " + customer.email + ": " + password + " (copy and share securely)");
+  } catch (error) {
+    setGlobalMessage(error.message || "Could not set a temporary password.", true);
   }
 }
 
@@ -1028,22 +1363,92 @@ function switchView(view) {
   const catalogue = view === "catalogue";
   const orders = view === "orders";
   const serviceRequests = view === "service-requests";
+  const customers = view === "customers";
+  const settings = view === "settings";
   $("dashboardView").hidden = !dashboard;
   $("catalogueView").hidden = !catalogue;
   $("ordersView").hidden = !orders;
+  $("customersView").hidden = !customers;
   $("serviceRequestsView").hidden = !serviceRequests;
-  $("pageTitle").textContent = dashboard ? "Overview" : orders ? "Orders" : serviceRequests ? "Service requests" : "Products";
+  $("settingsView").hidden = !settings;
+  $("pageTitle").textContent = dashboard ? "Overview" : orders ? "Orders" : customers ? "Customers" : serviceRequests ? "Service requests" : settings ? "Settings" : "Products";
   $("addProductTop").hidden = !catalogue;
   document.querySelectorAll(".nav-link").forEach(function (link) {
     link.classList.toggle("active", link.dataset.view === view);
   });
+  if (dashboard) loadDashboardStats();
   if (dashboard && ordersOffset !== 0) loadOrders(0);
+  if (customers) loadCustomers();
   if (serviceRequests) loadServiceRequests();
+  if (settings) {
+    $("settingsCloudName").value = localStorage.getItem(CLOUD_NAME_KEY) || CLOUD_NAME_DEFAULT;
+    $("settingsUploadPreset").value = localStorage.getItem(UPLOAD_PRESET_KEY) || UPLOAD_PRESET_DEFAULT;
+  }
+  closeSidebar();
+}
+
+function closeSidebar() {
+  $("appView").classList.remove("sidebar-open");
+  $("sidebarToggle").setAttribute("aria-expanded", "false");
+  $("sidebarToggle").setAttribute("aria-label", "Open admin navigation");
+  $("sidebarScrim").hidden = true;
+}
+
+function openSidebar() {
+  $("appView").classList.add("sidebar-open");
+  $("sidebarToggle").setAttribute("aria-expanded", "true");
+  $("sidebarToggle").setAttribute("aria-label", "Close admin navigation");
+  $("sidebarScrim").hidden = false;
+}
+
+function saveSettings(event) {
+  event.preventDefault();
+  const cloudName = $("settingsCloudName").value.trim();
+  const preset = $("settingsUploadPreset").value.trim();
+  if (!cloudName || !preset) {
+    $("settingsMessage").textContent = "Enter both a cloud name and upload preset.";
+    $("settingsMessage").className = "status-text error";
+    return;
+  }
+  localStorage.setItem(CLOUD_NAME_KEY, cloudName);
+  localStorage.setItem(UPLOAD_PRESET_KEY, preset);
+  $("cloudName").value = cloudName;
+  $("uploadPreset").value = preset;
+  $("settingsMessage").textContent = "Settings saved in this browser.";
+  $("settingsMessage").className = "status-text";
+  setGlobalMessage("Image upload settings saved.");
 }
 
 $("loginForm").addEventListener("submit", login);
 $("logoutBtn").addEventListener("click", function () { showLogin(""); });
 $("searchInput").addEventListener("input", renderProducts);
+$("adminGlobalSearch").addEventListener("input", function () {
+  $("searchInput").value = $("adminGlobalSearch").value;
+  renderProducts();
+});
+$("adminGlobalSearch").addEventListener("keydown", function (event) {
+  if (event.key === "Enter") switchView("catalogue");
+});
+$("sidebarToggle").addEventListener("click", function () {
+  if ($("appView").classList.contains("sidebar-open")) closeSidebar();
+  else openSidebar();
+});
+$("sidebarScrim").addEventListener("click", closeSidebar);
+$("newOrdersButton").addEventListener("click", function () {
+  $("ordersStatusFilter").value = "Pending";
+  $("ordersSearch").value = "";
+  switchView("orders");
+  loadOrders(0);
+});
+$("statsPeriod").addEventListener("change", loadDashboardStats);
+$("ordersSearch").addEventListener("input", renderOrders);
+$("ordersStatusFilter").addEventListener("change", renderOrders);
+$("exportOrders").addEventListener("click", exportOrdersCsv);
+$("customerSearch").addEventListener("input", function () {
+  window.clearTimeout(customerSearchTimer);
+  customerSearchTimer = window.setTimeout(loadCustomers, 250);
+});
+$("settingsForm").addEventListener("submit", saveSettings);
 $("refreshOrders").addEventListener("click", function () { loadOrders(); });
 $("refreshServiceRequests").addEventListener("click", loadServiceRequests);
 $("previousOrdersPage").addEventListener("click", function () {
@@ -1083,6 +1488,13 @@ $("addImageUrl").addEventListener("click", addImageUrl);
     localStorage.setItem(id === "cloudName" ? CLOUD_NAME_KEY : UPLOAD_PRESET_KEY, $(id).value.trim());
   });
 });
+$("productPrice").addEventListener("input", function () {
+  const value = $("productPrice").value;
+  const amount = Number(value);
+  $("productPrice").setCustomValidity(value && (!Number.isFinite(amount) || amount < 0 || amount > 99999999)
+    ? "Enter a price between 0 and 99,999,999, or leave this field blank."
+    : "");
+});
 document.querySelectorAll(".nav-link").forEach(function (link) {
   link.addEventListener("click", function (event) {
     event.preventDefault();
@@ -1097,6 +1509,7 @@ document.querySelectorAll("[data-view-link]").forEach(function (button) {
 document.addEventListener("keydown", function (event) {
   if (event.key === "Escape" && !$("editorModal").hidden) closeEditor();
   if (event.key === "Escape" && !$("orderModal").hidden) closeOrderDetails();
+  if (event.key === "Escape") closeSidebar();
 });
 
 async function restoreSession() {

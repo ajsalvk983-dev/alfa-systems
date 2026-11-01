@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>try{var p=sessionStorage.getItem("alfaPalette");document.documentElement.dataset.palette=/^[1-4]$/.test(p)?p:"1"}catch(e){document.documentElement.dataset.palette="1"}</script>
+    <meta name="theme-color" content="#040a1c" />
+    <title>My Account | ALFA SYSTEMS</title>
+    <script src="https://kit.fontawesome.com/ccc999b0a6.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="site.css" />
+    <link rel="stylesheet" href="alfa.css" />
+    <link rel="stylesheet" href="pages.css" />
+    <link rel="stylesheet" href="responsive.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,SOFT,wght@9..144,0..100,600..800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="design.css" />
+    <link rel="stylesheet" href="theme.css" />
+  </head>
+  <body>
+    <div class="top-info-bar glass"><div class="top-info-inner"><a href="tel:+919846500877"><i class="fa-solid fa-phone" aria-hidden="true"></i> 98465 00877</a><a href="https://wa.me/919846500877" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> 98465 00877</a><span class="top-offer">Trusted weighing solutions for shops &amp; industry</span><a class="top-shop-link" href="products.html">Shop Now <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a></div></div>
+    <nav class="navbar navbar-green glass-strong" aria-label="Main navigation">
+      <a class="navbar-brand" href="alfa.html" aria-label="ALFA SYSTEMS home"><img src="https://res.cloudinary.com/ddng8ksv6/image/upload/v1791894089/image-removebg-preview_mbsics.png" alt="" /></a>
+      <div class="yt-search"><input class="search glass" type="search" placeholder="Search products" aria-label="Search products" autocomplete="off" /><button class="search-icon glass" type="button" aria-label="Search products" title="Search products"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></button></div>
+      <div class="nav-icons" aria-label="Page navigation">
+        <a class="nav-icon glass" href="alfa.html" aria-label="Home" title="Home"><i class="fa-solid fa-house" aria-hidden="true"></i></a>
+        <a class="nav-icon glass" href="products.html" aria-label="Products" title="Products"><i class="fa-solid fa-box-open" aria-hidden="true"></i></a>
+        <a class="nav-icon glass" href="services.html" aria-label="Services" title="Services"><i class="fa-solid fa-screwdriver-wrench" aria-hidden="true"></i></a>
+        <a class="nav-icon glass" href="orders.html" aria-label="Orders" title="Orders"><i class="fa-solid fa-receipt" aria-hidden="true"></i></a>
+        <a class="nav-icon account-link glass" href="account.html" aria-current="page" aria-label="Account" title="Account"><i class="fa-solid fa-user" aria-hidden="true"></i></a>
+        <a class="nav-icon cart-link glass" href="cart.html" aria-label="Cart" title="Cart"><i class="fa-solid fa-cart-shopping" aria-hidden="true"></i><span class="cart-count glass-strong" id="cartCount" hidden>0</span></a>
+      </div>
+    </nav>
+    <main class="site-wrap account-page">
+      <section class="account-card">
+        <div id="accountLogin">
+          <p class="site-eyebrow">ALFA SYSTEMS ACCOUNT</p>
+          <h1>Welcome to your account</h1>
+          <p class="account-intro">Sign in to manage your details and see orders placed with your account. You can still browse and order as a guest.</p>
+          <div class="account-tabs" role="tablist" aria-label="Account access">
+            <button type="button" class="active" role="tab" aria-selected="true" data-account-tab="login">Log in</button>
+            <button type="button" role="tab" aria-selected="false" data-account-tab="signup">Create account</button>
+          </div>
+          <form id="loginForm" class="account-form" novalidate>
+            <label>Email address<input name="email" type="email" autocomplete="email" maxlength="150" required /></label>
+            <label>Password<span class="password-control"><input id="loginPassword" name="password" type="password" autocomplete="current-password" required /><button type="button" data-password-toggle="loginPassword" aria-label="Show password">Show</button></span></label>
+            <button class="site-button-primary" type="submit">Log in</button>
+            <a class="account-text-button" href="https://wa.me/919846500877?text=Hello%2C%20I%20need%20help%20with%20my%20ALFA%20SYSTEMS%20account%20password." target="_blank" rel="noopener">Forgot password? Contact us on WhatsApp</a>
+          </form>
+          <form id="signupForm" class="account-form" novalidate hidden>
+            <label>Full name<input name="name" autocomplete="name" maxlength="150" required /></label>
+            <label>Email address<input name="email" type="email" autocomplete="email" maxlength="150" required /></label>
+            <label>Password<span class="password-control"><input id="signupPassword" name="password" type="password" autocomplete="new-password" minlength="8" maxlength="72" required /><button type="button" data-password-toggle="signupPassword" aria-label="Show password">Show</button></span><small>Use at least 8 characters.</small></label>
+            <button class="site-button-primary" type="submit">Create account</button>
+          </form>
+        </div>
+        <div id="accountProfile" hidden>
+          <p class="site-eyebrow">YOUR ACCOUNT</p>
+          <h1 id="profileHeading">Welcome</h1>
+          <p class="account-intro">Update your contact details and account password.</p>
+          <div class="account-profile-links"><a class="site-button-secondary" href="orders.html"><i class="fa-solid fa-receipt" aria-hidden="true"></i> My orders</a><button id="logoutButton" class="account-logout" type="button">Log out</button></div>
+          <form id="profileForm" class="account-form">
+            <h2>Profile details</h2>
+            <label>Full name<input id="profileName" name="name" autocomplete="name" maxlength="150" required /></label>
+            <label>Email address<input id="profileEmail" name="email" type="email" autocomplete="email" maxlength="150" required /></label>
+            <button class="site-button-primary" type="submit">Save profile</button>
+          </form>
+          <form id="passwordForm" class="account-form">
+            <h2>Change password</h2>
+            <label>Current password<input id="currentPassword" type="password" autocomplete="current-password" required /></label>
+            <label>New password<input id="newPassword" type="password" autocomplete="new-password" minlength="8" maxlength="72" required /></label>
+            <label>Confirm new password<input id="confirmPassword" type="password" autocomplete="new-password" minlength="8" maxlength="72" required /></label>
+            <button class="site-button-primary" type="submit">Change password</button>
+          </form>
+        </div>
+        <p id="accountMessage" class="account-message" role="status" aria-live="polite" hidden></p>
+      </section>
+    </main>
+    <footer class="site-footer"><div class="site-wrap"><div class="footer-grid"><div class="footer-brand"><img src="https://res.cloudinary.com/ddng8ksv6/image/upload/v1791894089/image-removebg-preview_mbsics.png" alt="ALFA SYSTEMS" /><p>Weighing solutions and professional service support from Thrissur, Kerala.</p></div><div class="footer-col"><h2>Explore</h2><a href="products.html">Products</a><a href="services.html">Services</a><a href="orders.html">Orders</a></div><div class="footer-col"><h2>Contact</h2><a href="tel:+919846500877">9846500877</a><a href="https://wa.me/919846500877" target="_blank" rel="noopener">WhatsApp</a></div><div class="footer-col"><h2>Location</h2><address>Palikkunnu, P.O. Pady,<br />Kodaly, Thrissur, Kerala</address></div></div></div></footer>
+    <script src="products.js"></script>
+    <script src="api.js"></script>
+    <script src="auth.js"></script>
+    <script src="alfa.js"></script>
+    <script src="account.js"></script>
+  </body>
+</html>

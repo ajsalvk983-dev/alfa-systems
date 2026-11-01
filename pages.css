@@ -654,7 +654,7 @@
 }
 
 .strip-title {
-  font-family: "Poppins", sans-serif;
+  font-family: var(--font-display, Georgia, serif);
   font-weight: 800;
   font-size: clamp(1.4rem, 3vw, 2rem);
   margin-bottom: 16px;
