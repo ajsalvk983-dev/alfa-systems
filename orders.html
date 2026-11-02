@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script>try{var p=sessionStorage.getItem("alfaPalette");document.documentElement.dataset.palette=/^[1-4]$/.test(p)?p:"1"}catch(e){document.documentElement.dataset.palette="1"}</script>
     <title>My Orders | ALFA SYSTEMS</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous" />
     <script src="https://kit.fontawesome.com/ccc999b0a6.js" crossorigin="anonymous"></script>
 
     <link rel="stylesheet" href="checkout.css" />
@@ -39,14 +38,15 @@
 
       <div class="page-wrap orders-page">
         <h2 class="page-heading">My Orders</h2>
-        <section class="database-orders-section" aria-labelledby="checkoutOrdersTitle">
+        <section class="database-orders-section paper" aria-labelledby="checkoutOrdersTitle">
           <h3 id="checkoutOrdersTitle">Checkout orders</h3>
           <div id="databaseOrdersState" class="database-orders-state" role="status" aria-live="polite">Loading saved orders…</div>
           <div id="databaseOrdersList"></div>
         </section>
-        <h3 class="orders-history-title">WhatsApp order history</h3>
-        <div id="ordersList"></div>
-        <div id="ordersActions"></div>
+        <section class="orders-migration-note paper" aria-labelledby="ordersMigrationTitle">
+          <h3 id="ordersMigrationTitle">About previous WhatsApp enquiries</h3>
+          <p>WhatsApp-only order history was stored in this browser and was not a confirmed checkout order. New orders placed through checkout appear above; guest checkout orders remain available on this browser using their order access link.</p>
+        </section>
       </div>
 
       <footer class="site-footer"><div class="site-wrap"><div class="footer-grid">

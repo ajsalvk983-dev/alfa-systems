@@ -548,3 +548,37 @@
     bottom: 13px;
   }
 }
+
+.alfa-carousel .carousel-indicators {
+  position: absolute;
+  display: flex;
+  padding: 0;
+  list-style: none;
+}
+
+.alfa-carousel .carousel-indicators li {
+  cursor: pointer;
+}
+
+.alfa-carousel .carousel-indicators li:focus-visible {
+  outline: 3px solid #ffd54f;
+  outline-offset: 3px;
+}
+
+.alfa-carousel .carousel-item {
+  display: none;
+}
+
+.alfa-carousel .carousel-item.active {
+  display: block;
+  animation: alfa-carousel-in 350ms ease both;
+}
+
+@keyframes alfa-carousel-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .alfa-carousel .carousel-item.active { animation: none; }
+}
