@@ -4,6 +4,16 @@
   const button = document.getElementById("serviceSubmit");
   const phone = form.elements.phone;
 
+  getUser().then(function (user) {
+    if (!user) return;
+    if (!form.elements.name.value) form.elements.name.value = user.name || "";
+    if (!form.elements.phone.value) form.elements.phone.value = user.phone || "";
+    if (!form.elements.email.value) form.elements.email.value = user.email || "";
+  }).catch(function (error) {
+    status.textContent = error.message || "Could not load your saved account details.";
+    status.classList.add("error");
+  });
+
   phone.addEventListener("input", function () {
     phone.value = phone.value.replace(/\D/g, "").slice(0, 10);
   });
@@ -22,11 +32,15 @@
     const formData = new FormData(form);
     const request = Object.fromEntries(formData.entries());
     try {
-      const response = await fetch(API_URL + "/api/service-requests", {
+      const user = await getUser();
+      const requestOptions = {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(request),
-      });
+      };
+      const response = user
+        ? await authFetch("/api/service-requests", requestOptions)
+        : await fetch(API_URL + "/api/service-requests", requestOptions);
       const body = await response.json();
       if (!response.ok) throw new Error(body.error || "Could not send your request.");
       form.reset();

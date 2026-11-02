@@ -1,6 +1,7 @@
 const AUTH_TOKEN_KEY = "alfaAuthToken";
 let currentUser = null;
 let currentUserRequest = null;
+let authExpiredMessage = "";
 
 function getAuthToken() {
   return localStorage.getItem(AUTH_TOKEN_KEY) || "";
@@ -44,8 +45,18 @@ async function authFetch(path, options) {
   if (response.status === 401 && token) {
     localStorage.removeItem(AUTH_TOKEN_KEY);
     setCurrentUser(null);
+    authExpiredMessage = "Your session expired. Please sign in again.";
+    window.dispatchEvent(new CustomEvent("alfa-auth-expired", {
+      detail: { message: authExpiredMessage },
+    }));
   }
   return response;
+}
+
+function getAuthExpiredMessage() {
+  const message = authExpiredMessage;
+  authExpiredMessage = "";
+  return message;
 }
 
 async function getUser(forceRefresh) {

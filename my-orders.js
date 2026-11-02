@@ -143,12 +143,41 @@ function renderDatabaseOrder(order) {
   });
   details.appendChild(detailGrid);
   card.appendChild(details);
+
+  const reorder = myOrderElement("button", "Reorder", "site-button-secondary order-reorder");
+  reorder.type = "button";
+  reorder.addEventListener("click", function () {
+    const cart = load(CART_KEY).filter(function (item) { return item && typeof item === "object"; });
+    (Array.isArray(order.items) ? order.items : []).forEach(function (item) {
+      if (!item || !item.id) return;
+      const existing = cart.find(function (entry) { return String(entry.id) === String(item.id); });
+      if (existing) {
+        existing.qty = Math.min(getSafeQuantity(existing.qty) + getSafeQuantity(item.qty), 99);
+      } else {
+        cart.push({
+          id: String(item.id),
+          name: item.name || "Product",
+          image: item.image || "",
+          price: null,
+          priceText: "",
+          qty: getSafeQuantity(item.qty),
+        });
+      }
+    });
+    save(CART_KEY, cart);
+    updateBadge();
+    showToast("Order items added to your cart");
+  });
+  card.appendChild(reorder);
   return card;
 }
+
+window.renderDatabaseOrder = renderDatabaseOrder;
 
 async function loadDatabaseOrders() {
   const state = document.getElementById("databaseOrdersState");
   const list = document.getElementById("databaseOrdersList");
+  if (!state || !list) return;
   const user = typeof getUser === "function" ? await getUser().catch(function (error) {
     state.className = "database-orders-state error";
     state.textContent = error.message || "Could not verify your account.";
