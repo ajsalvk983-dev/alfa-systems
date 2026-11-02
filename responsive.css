@@ -36,8 +36,7 @@ html {
 
 /* a long word or product name can never push the page wider than the screen */
 h1, h2, h3, h4, h5, h6,
-.cart-name,
-.order-items span {
+.cart-name {
   overflow-wrap: anywhere;
 }
 
@@ -108,7 +107,6 @@ body { overflow-x: hidden; background: #fff; color: #161111; font-family: "Inter
   .card-sub { font-size: .68rem; }
   .card-actions .btn { width: 100%; min-height: 44px; }
   .cart-layout { grid-template-columns: minmax(0,1fr); gap: 14px; }
-  .cart-main { padding: 16px; }
   .cart-summary-panel { position: static; }
   .orders-page { padding-top: 24px; }
   .pd-main { grid-template-columns: minmax(0,1fr); gap: 22px; }
@@ -149,16 +147,8 @@ body { overflow-x: hidden; background: #fff; color: #161111; font-family: "Inter
   .cart-item .remove-btn { width: auto; padding: 0 8px; }
   .cart-item .qty-box button { width: 44px; min-width: 44px; height: 44px; }
   .cart-summary { padding: 17px; }
-  .order-item-row { grid-template-columns: 46px minmax(0,1fr) auto; gap: 7px; }
-  .order-items li img, .order-image-placeholder { width: 46px; height: 46px; }
-  .order-item-qty { grid-column: 2; }
-  .order-item-price { grid-column: 3; grid-row: 1 / span 2; }
-  .order-head { align-items: flex-start; }
-  .order-head .order-badge { font-size: .65rem; }
   .page-wrap-wide { padding: 14px 12px 32px; }
-  .pd-card { padding-top: 10px; }
   .pd-photo { padding: 18px; }
-  .pd-actions { flex-direction: row; }
   .pd-btn { min-width: 0; padding: 0 10px; font-size: .75rem; }
 }
 

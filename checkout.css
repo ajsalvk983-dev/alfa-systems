@@ -57,7 +57,7 @@
 .checkout-back:hover { color: #0e593c; text-decoration: none; }
 .checkout-notice { padding: 18px; margin-bottom: 16px; color: #526174; background: #fff; border: 1px solid #e5eaf0; border-radius: 10px; font-size: .88rem; }
 .checkout-error { color: #a53333; background: #fff4f4; border-color: #f0d7d7; }
-.confirmation-card { max-width: 700px; padding: 36px; margin: 40px auto; text-align: center; background: #fff; border: 1px solid #e5eaf0; border-radius: 16px; box-shadow: 0 12px 40px rgba(20,35,54,.08); }
+.confirmation-card { max-width: 700px; margin: 40px auto; text-align: center; }
 .confirmation-mark { display: grid; width: 58px; height: 58px; place-items: center; margin: 0 auto 18px; color: #fff; background: #18865b; border-radius: 50%; font-size: 24px; }
 .confirmation-details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; overflow: hidden; margin-top: 23px; background: #e9edf2; border: 1px solid #e9edf2; border-radius: 10px; text-align: left; }
 .confirmation-details > div { padding: 13px; background: #f9fafb; }
@@ -90,7 +90,6 @@
 .database-order-item { display: flex; justify-content: space-between; gap: 12px; color: #536174; font-size: .82rem; }
 .database-order-total { display: flex; justify-content: space-between; padding-top: 11px; color: #263345; border-top: 1px solid #edf0f3; font-weight: 800; }
 .database-order-meta { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 8px; color: #6c7889; font-size: .75rem; }
-.orders-history-title { margin: 28px 0 12px; color: #263345; font-size: 1.15rem; font-weight: 800; }
 .checkout-retry { padding: 6px 10px; margin-left: 8px; color: #245ca6; background: #eaf2fc; border: 0; border-radius: 6px; font-size: .75rem; font-weight: 700; }
 .checkout-image-placeholder { display: grid; place-items: center; color: #8190a3; font-size: .7rem; font-weight: 800; }
 
@@ -105,7 +104,7 @@
   .checkout-span-2 { grid-column: auto; }
   .checkout-choice-grid { grid-template-columns: 1fr; }
   .checkout-summary-card { padding: 17px; }
-  .confirmation-card { padding: 24px 16px; margin: 20px auto; }
+  .confirmation-card { margin: 20px auto; }
   .confirmation-details { grid-template-columns: 1fr; }
   .database-order-head { flex-direction: column; }
 }

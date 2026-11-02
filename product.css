@@ -8,11 +8,7 @@
 }
 
 .pd-card {
-  background: #fff;
-  color: #212121;
-  border-radius: 18px;
-  padding: 24px 28px 32px;
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.3);
+  color: #161111;
 }
 
 /* breadcrumb */
@@ -209,9 +205,8 @@
 }
 
 @media (max-width: 480px) {
-  .pd-card { padding: 16px 14px 24px; border-radius: 14px; }
-  .pd-actions { flex-direction: column; }
-  .pd-btn { width: 100%; }
+  .pd-actions { min-width: 0; }
+  .pd-btn { min-width: 0; }
 }
 
 /* hover effects only on devices with a mouse, so they do not stick after a tap on phones */
@@ -228,7 +223,7 @@
 }
 
 .page-wrap-wide { max-width: 1200px; padding: 20px 20px 48px; }
-.pd-card { padding: 20px 0 32px; color: #161111; background: #fff; border: 0; border-radius: 0; box-shadow: none; }
+.pd-card { color: #161111; }
 .pd-crumbs { margin-bottom: 18px; color: #777d79; font-size: .76rem; }
 .pd-crumbs a { color: #777d79; }
 .pd-crumbs b { color: #161111; }
