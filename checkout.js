@@ -357,6 +357,36 @@ document.getElementById("deliveryPincode").addEventListener("input", function (e
   event.target.value = event.target.value.replace(/\D/g, "").slice(0, 6);
 });
 
+async function prefillCheckoutForCustomer() {
+  if (typeof getUser !== "function") return;
+  const user = await getUser();
+  if (!user) return;
+  const setIfEmpty = function (id, value) {
+    const field = document.getElementById(id);
+    if (value && !field.value.trim()) field.value = value;
+  };
+  setIfEmpty("customerName", user.name);
+  setIfEmpty("customerPhone", user.phone);
+  setIfEmpty("customerEmail", user.email);
+  const response = await authFetch("/api/auth/addresses");
+  if (!response.ok) {
+    const data = await response.json().catch(function () { return {}; });
+    throw new Error(data.error || "Could not load your saved delivery address.");
+  }
+  const addresses = await response.json();
+  if (!Array.isArray(addresses)) throw new Error("The addresses API returned an invalid response.");
+  const address = addresses.find(function (entry) { return entry && entry.isDefault; }) || addresses[0];
+  if (!address) return;
+  setIfEmpty("customerName", address.name);
+  setIfEmpty("customerPhone", address.phone);
+  setIfEmpty("deliveryAddress", address.address);
+  setIfEmpty("deliveryCity", address.city);
+  setIfEmpty("deliveryDistrict", address.district);
+  setIfEmpty("deliveryState", address.state);
+  setIfEmpty("deliveryPincode", address.pincode);
+  setIfEmpty("deliveryNote", address.note);
+}
+
 async function initializeCheckout() {
   const errorBox = checkoutErrorBox;
   try {
@@ -391,6 +421,11 @@ async function initializeCheckout() {
     updateBadge();
     document.getElementById("checkoutError").hidden = true;
     if (!checkoutCart.length) document.getElementById("checkoutEmpty").hidden = false;
+    try {
+      await prefillCheckoutForCustomer();
+    } catch (error) {
+      setCheckoutMessage((error.message || "Could not load your saved details.") + " You can enter your details manually.", true);
+    }
   } catch (error) {
     document.getElementById("checkoutLoading").hidden = true;
     errorBox.textContent = (error.message || "Could not load the checkout.") + " Return to your cart or try again.";
