@@ -45,7 +45,7 @@
         </div>
       </section>
       <div class="content-grid service-request-grid">
-        <section class="content-panel">
+        <section class="content-panel paper">
           <h2>Request a service</h2>
           <form id="serviceRequestForm" class="site-form" novalidate>
             <label>Service required<select name="serviceType" required><option value="">Choose a service</option><option>Repair &amp; Maintenance</option><option>Calibration</option><option>Installation</option><option>Technical Support</option><option>Spare Parts</option><option>Machine Shifting &amp; Setup</option></select></label>
@@ -63,16 +63,14 @@
     <footer class="site-footer"><div class="site-wrap"><div class="footer-grid"><div class="footer-brand"><img src="https://res.cloudinary.com/ddng8ksv6/image/upload/v1791894089/image-removebg-preview_mbsics.png" alt="ALFA SYSTEMS" /><p>Service and weighing solutions from Palikkunnu, Thrissur.</p></div><div class="footer-col"><h2>Explore</h2><a href="products.html">Products</a><a href="orders.html">Orders</a><a href="about.html">About ALFA</a></div><div class="footer-col"><h2>Contact</h2><a href="tel:+919846500877">9846500877</a><a href="https://wa.me/919846500877" target="_blank" rel="noopener">WhatsApp</a><a href="mailto:kunjalanali35@gmail.com">Email</a></div><div class="footer-col"><h2>Address</h2><address>Palikkunnu, P.O. Pady,<br />Kodaly, Thrissur, Kerala</address></div></div><div class="footer-bottom"><span>© ALFA SYSTEMS</span><span>Service requests are reviewed by our team.</span></div></div></footer>
     <script src="products.js"></script><script src="api.js"></script><script src="auth.js"></script>
     <script>
-      loadProducts().then(function () {
-        var core = document.createElement("script");
-        core.src = "alfa.js";
-        core.onload = function () {
-          var form = document.createElement("script");
-          form.src = "services.js";
-          document.body.appendChild(form);
-        };
-        document.body.appendChild(core);
-      });
+      var core = document.createElement("script");
+      core.src = "alfa.js";
+      core.onload = function () {
+        var form = document.createElement("script");
+        form.src = "services.js";
+        document.body.appendChild(form);
+      };
+      document.body.appendChild(core);
     </script>
   </body>
 </html>

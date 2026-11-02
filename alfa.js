@@ -1,6 +1,5 @@
 const Whatsapp_nmbr = "919846500877";
 const CART_KEY = "alfaCart";
-const ORDERS_KEY = "alfaOrders";
 
 function load(key) {
   try {
@@ -160,6 +159,88 @@ function updateBadge() {
   badge.hidden = count === 0;
 }
 
+const WISHLIST_KEY = "alfaWishlist";
+const wishlistProductIds = new Set();
+let wishlistSyncUserId = null;
+
+function localWishlistIds() {
+  const entries = load(WISHLIST_KEY);
+  return entries.map(function (entry) {
+    return String(entry && typeof entry === "object" ? entry.id || "" : entry || "");
+  }).filter(Boolean);
+}
+
+function isProductWishlisted(id) {
+  const key = String(id || "");
+  return currentUser ? wishlistProductIds.has(key) : localWishlistIds().includes(key);
+}
+
+function updateWishlistButtons() {
+  document.querySelectorAll(".card-wishlist").forEach(function (button) {
+    const saved = isProductWishlisted(button.dataset.wishlistId);
+    button.textContent = saved ? "♥" : "♡";
+    button.setAttribute("aria-pressed", saved ? "true" : "false");
+    button.setAttribute("aria-label", (saved ? "Remove " : "Add ") + (button.dataset.wishlistName || "product") + (saved ? " from" : " to") + " wishlist");
+  });
+}
+
+async function syncWishlistForUser(user) {
+  if (!user || wishlistSyncUserId === String(user.id)) return;
+  const pending = localWishlistIds();
+  for (const id of pending) {
+    const response = await authFetch("/api/auth/wishlist/" + encodeURIComponent(id), { method: "POST" });
+    if (response.status === 404) continue;
+    if (!response.ok) throw new Error("Could not sync your saved products.");
+  }
+  if (pending.length) save(WISHLIST_KEY, []);
+  const response = await authFetch("/api/auth/wishlist");
+  if (!response.ok) throw new Error("Could not load your saved products.");
+  const products = await response.json();
+  if (!Array.isArray(products)) throw new Error("The wishlist API returned an invalid response.");
+  wishlistProductIds.clear();
+  products.forEach(function (product) { wishlistProductIds.add(String(product.id)); });
+  wishlistSyncUserId = String(user.id);
+  updateWishlistButtons();
+}
+
+async function toggleWishlist(button) {
+  const id = button.dataset.wishlistId;
+  if (!id) return;
+  try {
+    const user = currentUser || (getAuthToken() ? await getUser() : null);
+    if (user) {
+      await syncWishlistForUser(user);
+      const saved = wishlistProductIds.has(String(id));
+      const response = await authFetch("/api/auth/wishlist/" + encodeURIComponent(id), {
+        method: saved ? "DELETE" : "POST",
+      });
+      if (!response.ok) throw new Error("Could not update your wishlist.");
+      if (saved) wishlistProductIds.delete(String(id));
+      else wishlistProductIds.add(String(id));
+    } else {
+      const ids = localWishlistIds();
+      const saved = ids.includes(String(id));
+      save(WISHLIST_KEY, saved ? ids.filter(function (value) { return value !== String(id); }) : ids.concat(String(id)).slice(-200));
+    }
+    updateWishlistButtons();
+    showToast(isProductWishlisted(id) ? "Saved to your wishlist" : "Removed from your wishlist");
+  } catch (error) {
+    showToast(error.message || "Could not update your wishlist.");
+  }
+}
+
+window.addEventListener("alfa-auth-change", function (event) {
+  if (!event.detail) {
+    wishlistProductIds.clear();
+    wishlistSyncUserId = null;
+    updateWishlistButtons();
+    return;
+  }
+  syncWishlistForUser(event.detail).catch(function (error) {
+    showToast(error.message || "Could not sync your wishlist.");
+  });
+});
+
 function getNumericPrice(value) {
   if (typeof value !== "number" && typeof value !== "string") return null;
   if (typeof value === "string" && value.trim() === "") return null;
@@ -213,26 +294,13 @@ function mergeCatalogueData(item, product) {
   if (!item.brand) item.brand = product.brand || "";
   if (!item.category) item.category = product.category || "";
 
-  const price = getNumericPrice(item.price);
   const productPrice = getNumericPrice(product.price);
-  item.price = price === null ? productPrice : price;
+  item.price = productPrice;
 
-  const oldPrice = typeof item.oldPrice === "number" ? getNumericPrice(item.oldPrice) : null;
   const productOldPrice = typeof product.oldPrice === "number" ? getNumericPrice(product.oldPrice) : null;
-  item.oldPrice = productOldPrice === null ? null : (oldPrice === null ? productOldPrice : oldPrice);
-  if (typeof item.priceText !== "string" || !item.priceText) {
-    item.priceText = typeof product.price === "string" && getNumericPrice(product.price) === null ? product.price : "";
-  }
+  item.oldPrice = productOldPrice;
+  item.priceText = typeof product.price === "string" && productPrice === null ? product.price : "";
   return item;
-}
-
-function orderNow(btn, e) {
-  if (e) e.stopPropagation();
-  const card = btn.closest(".alfa-card-home");
-  const product = card.querySelector(".card-title").textContent;
-  const image = card.querySelector(".card-img-top").src;
-  const message = "Hello, I would like to know more about " + product + "\n" + image;
-  window.open("https://wa.me/" + Whatsapp_nmbr + "?text=" + encodeURIComponent(message), "_blank");
 }
 
 function addToCart(btn, e) {
@@ -316,43 +384,6 @@ document.querySelectorAll(".chip").forEach(function (chip) {
   });
 });
 
-// slide buttons like "Shop counter scales" switch the category chip, then scroll to #products
-document.querySelectorAll("[data-goto-filter]").forEach(function (link) {
-  link.addEventListener("click", function () {
-    const chip = document.querySelector('.chip[data-filter="' + link.dataset.gotoFilter + '"]');
-    if (chip) chip.click();
-  });
-});
-
-// the colour zone behind the navbar follows the carousel
-const heroZone = document.querySelector(".hero-zone");
-const heroCarousel = document.getElementById("carouselExampleIndicators");
-if (heroZone && heroCarousel && window.jQuery) {
-  const slides = Array.from(heroCarousel.querySelectorAll(".carousel-item"));
-  const activeSlide = slides.indexOf(heroCarousel.querySelector(".carousel-item.active"));
-  if (activeSlide >= 0) {
-    heroZone.dataset.slide = activeSlide + 1;
-    document.documentElement.dataset.palette = String(activeSlide + 1);
-    try {
-      sessionStorage.setItem("alfaPalette", String(activeSlide + 1));
-    } catch (error) {
-      console.warn("Could not save the selected colour palette.", error);
-    }
-  }
-  window.jQuery(heroCarousel).on("slide.bs.carousel", function (e) {
-    heroZone.dataset.slide = e.to + 1;
-    document.documentElement.dataset.palette = String(e.to + 1);
-    try {
-      sessionStorage.setItem("alfaPalette", String(e.to + 1));
-    } catch (error) {
-      console.warn("Could not save the selected colour palette.", error);
-    }
-  });
-  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    window.jQuery(heroCarousel).carousel("pause");
-  }
-}
-
 function renderCart() {
   const list = document.getElementById("cartList");
   const summary = document.getElementById("cartSummary");
@@ -364,7 +395,13 @@ function renderCart() {
     return item && typeof item === "object";
   });
   cart.forEach(function (item) {
-    mergeCatalogueData(item, findCatalogueProduct(item));
+    const product = findCatalogueProduct(item);
+    if (product) mergeCatalogueData(item, product);
+    else {
+      item.price = null;
+      item.oldPrice = null;
+      item.priceText = "";
+    }
     item.price = getNumericPrice(item.price);
     item.oldPrice = typeof item.oldPrice === "number" ? getNumericPrice(item.oldPrice) : null;
     item.qty = getSafeQuantity(item.qty);
@@ -468,7 +505,8 @@ function renderCart() {
       ? '<p class="cart-summary-note">' + itemsWithoutPrice + (itemsWithoutPrice === 1 ? " product has" : " products have") + ' no fixed price. The team will confirm the final price.</p>'
       : '<p class="cart-summary-note">Delivery charges are confirmed based on your location and order.</p>') +
     '<div class="cart-actions">' +
-    '<button type="button" class="btn btn-primary checkout-link" data-cart-action="order"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> Order on WhatsApp</button>' +
+    '<a href="checkout.html" class="btn btn-primary checkout-link"><i class="fa-solid fa-arrow-right" aria-hidden="true"></i> Proceed to checkout</a>' +
+    '<button type="button" class="btn checkout-whatsapp" data-cart-action="order"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> Order on WhatsApp</button>' +
     '<a href="products.html" class="cart-continue"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Continue shopping</a>' +
     '<button type="button" class="cart-clear" data-cart-action="clear">Clear cart</button>' +
     "</div>" +
@@ -527,26 +565,6 @@ function clearCart() {
   });
 }
 
-function sendOrderToServer(cart) {
-  if (typeof API_URL === "undefined") return;
-  const items = cart
-    .filter(function (item) { return item.id; })
-    .map(function (item) { return { id: item.id, qty: item.qty }; });
-  if (!items.length) return;
-  const headers = { "Content-Type": "application/json" };
-  if (typeof getAuthToken === "function" && getAuthToken()) {
-    headers.Authorization = "Bearer " + getAuthToken();
-  }
-  fetch(API_URL + "/api/orders", {
-    method: "POST",
-    headers: headers,
-    body: JSON.stringify({ items: items }),
-    keepalive: true,
-  }).catch(function (error) {
-    console.warn("Could not save the WhatsApp order to the store API:", error.message);
-  });
-}
-
 function placeOrder() {
   const cart = load(CART_KEY);
   if (cart.length === 0) {
@@ -558,112 +576,11 @@ function placeOrder() {
     return i + 1 + ". " + item.name + " x " + item.qty;
   });
   const message = "Hello, I want to order:\n" + lines.join("\n");
-  sendOrderToServer(cart);
-
-  const orders = load(ORDERS_KEY);
-  orders.unshift({
-    id: Date.now(),
-    date: new Date().toLocaleString("en-IN"),
-    items: cart,
-  });
-  save(ORDERS_KEY, orders);
   save(CART_KEY, []);
   updateBadge();
 
   window.open("https://wa.me/" + Whatsapp_nmbr + "?text=" + encodeURIComponent(message), "_blank");
   window.location.href = "orders.html";
-}
-
-function renderOrders() {
-  const list = document.getElementById("ordersList");
-  const actions = document.getElementById("ordersActions");
-  if (!list) return;
-
-  const orders = load(ORDERS_KEY);
-
-  if (orders.length === 0) {
-    list.innerHTML =
-      '<div class="empty-state">' +
-      '<i class="fa-solid fa-box-open"></i>' +
-      "<p>No orders yet</p>" +
-      '<a href="products.html" class="btn btn-primary">Browse products</a>' +
-      "</div>";
-    actions.innerHTML = "";
-    return;
-  }
-
-  list.innerHTML = orders
-    .map(function (order, i) {
-      const items = order.items
-        .map(function (item) {
-          const discount = getDiscount(item);
-          const price = getNumericPrice(item.price);
-          return (
-            '<li class="order-item-row">' +
-            (item.image ? '<span class="order-item-image"><img src="' + esc(cld(item.image, 140)) + '" alt="" /></span>' : '<span class="order-image-placeholder" aria-hidden="true"><i class="fa-solid fa-box-open"></i></span>') +
-            '<span class="order-item-name">' + esc(item.name || "Product") + "</span>" +
-            '<span class="order-item-qty">Qty ' + getSafeQuantity(item.qty) + "</span>" +
-            '<span class="order-item-price">' +
-              (price === null ? esc(item.priceText || "Ask price") : formatPrice(price)) +
-              (discount ? ' <s>' + formatPrice(price + discount.amount) + '</s><small class="discount-label">' + discount.percent + '% off</small>' : "") +
-            "</span>" +
-            "</li>"
-          );
-        })
-        .join("");
-
-      return (
-        '<div class="order-card">' +
-        '<div class="order-head">' +
-        "<div><strong>Order #" + String(order.id).slice(-6) + "</strong>" +
-        "<span>" + esc(order.date) + "</span></div>" +
-        '<span class="order-badge">Requested via WhatsApp</span>' +
-        "</div>" +
-        '<ul class="order-items">' + items + "</ul>" +
-        '<div class="order-actions">' +
-        '<button class="btn btn-primary btn-sm" onclick="reorder(' + i + ')">Order again</button>' +
-        '<button class="btn btn-outline-danger btn-sm" onclick="deleteOrder(' + i + ')">Delete</button>' +
-        "</div>" +
-        "</div>"
-      );
-    })
-    .join("");
-
-  actions.innerHTML =
-    '<button class="btn btn-outline-danger" onclick="clearOrders()">Clear all history</button>';
-}
-
-function reorder(i) {
-  const orders = load(ORDERS_KEY);
-  const order = orders[i];
-  if (!order) return;
-
-  const cart = load(CART_KEY);
-  order.items.forEach(function (item) {
-    const existing = cart.find(function (c) {
-      return c.name === item.name;
-    });
-    if (existing) {
-      existing.qty = Math.min(existing.qty + item.qty, 99);
-    } else {
-cart.push({ id: item.id, name: item.name, image: item.image, qty: item.qty });    }
-  });
-  save(CART_KEY, cart);
-  window.location.href = "cart.html";
-}
-
-function deleteOrder(i) {
-  const orders = load(ORDERS_KEY);
-  orders.splice(i, 1);
-  save(ORDERS_KEY, orders);
-  renderOrders();
-}
-
-function clearOrders() {
-  confirmAction("Delete all locally saved order history?", function () {
-    save(ORDERS_KEY, []);
-    renderOrders();
-  });
 }
 
 function detailOfProduct(card) {
@@ -699,35 +616,47 @@ function setupSearchDropdown() {
   const clear = document.createElement("button");
   clear.type = "button";
   clear.className = "search-clear";
-  clear.setAttribute("aria-label", "Clear search");
+  clear.setAttribute("aria-label", "Clear search or close search");
   clear.textContent = "×";
   clear.hidden = true;
   host.appendChild(clear);
-  const close = document.createElement("button");
-  close.type = "button";
-  close.className = "search-close";
-  close.setAttribute("aria-label", "Close search");
-  close.textContent = "×";
-  host.appendChild(close);
   const homePage = document.body.classList.contains("home-page");
+  const previousBodyOverflow = document.body.style.overflow;
+
+  function setSearchOpen(open) {
+    navbar.classList.toggle("search-open", open);
+    panel.hidden = !open || !input.value.trim();
+    document.body.style.overflow = open ? "hidden" : previousBodyOverflow;
+  }
 
   function positionPanel() {
     if (panel.hidden) return;
     const bounds = input.getBoundingClientRect();
     const mobile = window.matchMedia("(max-width: 600px)").matches;
     const navBounds = navbar.getBoundingClientRect();
-    const width = mobile ? Math.max(0, window.innerWidth - 16) : Math.min(window.innerWidth - 16, Math.max(bounds.width, 360));
-    const left = mobile ? 8 : Math.max(8, Math.min(bounds.left, window.innerWidth - width - 8));
-    const top = mobile ? navBounds.bottom + 8 : bounds.bottom + 8;
+    const viewport = window.visualViewport;
+    const viewportTop = viewport ? viewport.offsetTop : 0;
+    const viewportLeft = viewport ? viewport.offsetLeft : 0;
+    const viewportWidth = viewport ? viewport.width : window.innerWidth;
+    const viewportHeight = viewport ? viewport.height : window.innerHeight;
+    const width = mobile ? Math.max(0, viewportWidth - 16) : Math.min(viewportWidth - 16, Math.max(bounds.width, 360));
+    const left = mobile ? viewportLeft + 8 : Math.max(viewportLeft + 8, Math.min(bounds.left, viewportLeft + viewportWidth - width - 8));
+    const hostBounds = host.getBoundingClientRect();
+    const clearBounds = clear.getBoundingClientRect();
+    const icon = host.querySelector(".search-icon");
+    const iconBounds = icon ? icon.getBoundingClientRect() : bounds;
+    const anchor = mobile
+      ? Math.max(navBounds.bottom, hostBounds.bottom, bounds.bottom, clearBounds.bottom, iconBounds.bottom) + 8
+      : bounds.bottom + 8;
+    const top = Math.min(Math.max(anchor, viewportTop + 8), viewportTop + viewportHeight - 32);
     panel.style.left = left + "px";
     panel.style.top = top + "px";
     panel.style.width = width + "px";
-    panel.style.maxHeight = Math.max(120, window.innerHeight - top - 16) + "px";
+    panel.style.maxHeight = Math.max(0, viewportTop + viewportHeight - top - 12) + "px";
   }
 
   function goToResults(categoryValue) {
-    panel.hidden = true;
-    navbar.classList.remove("search-open");
+    setSearchOpen(false);
     const query = input.value.trim();
     if (homePage) {
       if (categoryValue) {
@@ -754,7 +683,7 @@ function setupSearchDropdown() {
 
   function render() {
     const q = input.value.trim().toLowerCase();
-    clear.hidden = !input.value;
+    clear.hidden = !input.value && !navbar.classList.contains("search-open");
     if (!q) {
       panel.hidden = true;
       return;
@@ -764,11 +693,11 @@ function setupSearchDropdown() {
       return [p.name, p.brand, p.category, p.usedFor, p.description, p.capacity, p.accuracy].join(" ").toLowerCase().includes(q);
     });
 
-    const seen = {};
+    const seen = Object.create(null);
     const suggestions = [];
     function add(label, type, value) {
-      if (label && label.toLowerCase().includes(q) && !seen[label]) {
-        seen[label] = true;
+      if (label && label.toLowerCase().includes(q) && !seen[label.toLowerCase()]) {
+        seen[label.toLowerCase()] = true;
         suggestions.push({ label: label, type: type, value: value });
       }
     }
@@ -800,12 +729,22 @@ function setupSearchDropdown() {
       })
       .join("");
 
+    const quickCategories = [
+      ["Platform", "platform"],
+      ["Counter", "counter"],
+      ["Label Printing", "label"],
+      ["Sealing", "sealing"]
+    ];
+    const emptyHtml = '<p class="search-empty">No products found for &quot;' + esc(input.value.trim()) + '&quot;</p>' +
+      '<div class="search-quick-chips">' + quickCategories.map(function (item) {
+        return '<button type="button" class="search-sugg" data-type="chip" data-value="' + item[1] + '">' + item[0] + "</button>";
+      }).join("") + '</div><a class="search-whatsapp" href="https://wa.me/' + Whatsapp_nmbr + '?text=' +
+      encodeURIComponent("Hello, I couldn't find " + input.value.trim() + " on the ALFA SYSTEMS website.") +
+      '" target="_blank" rel="noopener">Ask on WhatsApp</a>';
     panel.innerHTML =
-      (matches.length
-        ? '<section class="search-results"><h2>Products</h2>' + productHtml + "</section>"
-        : '<p class="search-empty">No products found</p>') +
-      (suggestions.length ? '<section class="search-suggestions"><h2>Suggestions</h2><div>' + suggestionHtml + "</div></section>" : "") +
-      '<div class="search-foot"><button type="button" class="search-all">View all results</button></div>';
+      '<section class="search-results"><h2>Products</h2>' + (matches.length ? productHtml : emptyHtml) + "</section>" +
+      (matches.length && suggestions.length ? '<section class="search-suggestions"><h2>Suggestions</h2><div>' + suggestionHtml + "</div></section>" : "") +
+      (matches.length ? '<div class="search-foot"><button type="button" class="search-all">View all results</button></div>' : "");
     panel.hidden = false;
     positionPanel();
     initProductImages(panel);
@@ -829,11 +768,11 @@ function setupSearchDropdown() {
   input.addEventListener("input", render);
   input.addEventListener("focus", render);
   input.addEventListener("keydown", function (e) {
-    if (e.key === "Enter") goToResults();
     if (e.key === "Escape") {
-      panel.hidden = true;
-      navbar.classList.remove("search-open");
+      setSearchOpen(false);
       input.blur();
+    } else if (e.key === "Enter") {
+      goToResults();
     }
     if (e.key === "ArrowDown" && !panel.hidden) {
       const firstResult = panel.querySelector(".search-product, .search-sugg, .search-all");
@@ -854,8 +793,7 @@ function setupSearchDropdown() {
     const current = entries.indexOf(document.activeElement);
     if (e.key === "Escape") {
       e.preventDefault();
-      panel.hidden = true;
-      navbar.classList.remove("search-open");
+      setSearchOpen(false);
       input.blur();
     } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       e.preventDefault();
@@ -871,18 +809,18 @@ function setupSearchDropdown() {
   const icon = host.querySelector(".search-icon");
   if (icon) icon.addEventListener("click", function () {
     if (window.matchMedia("(max-width: 600px)").matches && !navbar.classList.contains("search-open")) {
-      navbar.classList.add("search-open");
+      setSearchOpen(true);
       input.focus();
       return;
     }
     goToResults();
   });
-  close.addEventListener("click", function () {
-    panel.hidden = true;
-    navbar.classList.remove("search-open");
-    input.blur();
-  });
   clear.addEventListener("click", function () {
+    if (!input.value) {
+      setSearchOpen(false);
+      input.blur();
+      return;
+    }
     input.value = "";
     searchText = "";
     panel.hidden = true;
@@ -890,19 +828,25 @@ function setupSearchDropdown() {
     applyFilters();
     input.focus();
   });
-  input.addEventListener("input", function () {
-    clear.hidden = !input.value;
-  });
-
   document.addEventListener("click", function (e) {
     if (!navbar.contains(e.target) && !panel.contains(e.target)) {
-      panel.hidden = true;
-      navbar.classList.remove("search-open");
+      setSearchOpen(false);
       input.blur();
     }
   });
+  function closeForNavigation() {
+    setSearchOpen(false);
+  }
   window.addEventListener("resize", positionPanel);
+  window.addEventListener("orientationchange", positionPanel);
   window.addEventListener("scroll", positionPanel, true);
+  window.addEventListener("pagehide", closeForNavigation);
+  window.addEventListener("popstate", closeForNavigation);
+  window.addEventListener("hashchange", closeForNavigation);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", positionPanel);
+    window.visualViewport.addEventListener("scroll", positionPanel);
+  }
 }
 
 function createProductCard(p) {
@@ -925,6 +869,7 @@ function createProductCard(p) {
   card.dataset.id = p.id || "";
   card.dataset.category = p.category || "";
   card.innerHTML =
+    '<button type="button" class="card-wishlist" onclick="toggleWishlist(this)" data-wishlist-id="' + esc(p.id || "") + '" data-wishlist-name="' + esc(p.name || "product") + '" aria-pressed="' + (isProductWishlisted(p.id) ? "true" : "false") + '" aria-label="' + (isProductWishlisted(p.id) ? "Remove " : "Add ") + esc(p.name || "product") + (isProductWishlisted(p.id) ? " from" : " to") + ' wishlist">' + (isProductWishlisted(p.id) ? "♥" : "♡") + "</button>" +
     '<div class="card-img-wrap">' + discountBadge + '<img src="' + esc(cld(p.image, 500)) + '" class="card-img-top" alt="' + esc(p.name || "Product image") + '" loading="lazy" /></div>' +
     '<div class="card-body">' +
     '<div class="card-row"><h2 class="card-title"><a href="product.html?id=' + encodeURIComponent(p.id) + '">' + esc(p.name || "Product") + "</a></h2>" +
@@ -958,25 +903,95 @@ function setupStickyNav() {
 function setupCarouselSwipe() {
   const carousel = document.querySelector(".alfa-carousel");
   if (!carousel) return;
-  const updateSearchPalette = function () {
-    const activeSlide = carousel.querySelector(".carousel-item.active .alfa-slide");
-    if (!activeSlide) return;
-    const colors = window.getComputedStyle(activeSlide);
-    document.documentElement.style.setProperty("--search-bg-1", colors.getPropertyValue("--bg1").trim());
-    document.documentElement.style.setProperty("--search-bg-2", colors.getPropertyValue("--bg2").trim());
-    document.documentElement.style.setProperty("--search-accent", colors.getPropertyValue("--accent").trim());
-    document.documentElement.style.setProperty("--search-ink", colors.getPropertyValue("--ink").trim());
-  };
-  updateSearchPalette();
-  if (window.jQuery) {
-    window.jQuery(carousel).on("slid.bs.carousel", updateSearchPalette);
-  } else {
-    new MutationObserver(updateSearchPalette).observe(carousel.querySelector(".carousel-inner"), {
-      attributes: true,
-      subtree: true,
-      attributeFilter: ["class"]
+  const slides = Array.from(carousel.querySelectorAll(".carousel-item"));
+  const indicators = Array.from(carousel.querySelectorAll("[data-slide-to]"));
+  const heroZone = document.querySelector(".hero-zone");
+  if (!slides.length) return;
+  let activeIndex = Math.max(0, slides.findIndex(function (slide) { return slide.classList.contains("active"); }));
+  let autoplayTimer = null;
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function updatePalette(index) {
+    const slide = slides[index].querySelector(".alfa-slide");
+    if (!slide) return;
+    const colors = window.getComputedStyle(slide);
+    ["bg1", "bg2", "accent", "ink"].forEach(function (name) {
+      const value = colors.getPropertyValue("--" + name).trim();
+      if (value) document.documentElement.style.setProperty("--search-" + name.replace(/[0-9]/g, "-$&"), value);
     });
+    if (heroZone) heroZone.dataset.slide = String(index + 1);
+    document.documentElement.dataset.palette = String(index + 1);
+    try {
+      sessionStorage.setItem("alfaPalette", String(index + 1));
+    } catch (error) {
+      console.warn("Could not save the selected colour palette.", error);
+    }
   }
+
+  function showSlide(index) {
+    activeIndex = (index + slides.length) % slides.length;
+    slides.forEach(function (slide, position) {
+      const active = position === activeIndex;
+      slide.classList.toggle("active", active);
+      slide.setAttribute("aria-hidden", active ? "false" : "true");
+    });
+    indicators.forEach(function (indicator, position) {
+      const active = position === activeIndex;
+      indicator.classList.toggle("active", active);
+      indicator.setAttribute("aria-current", active ? "true" : "false");
+    });
+    updatePalette(activeIndex);
+  }
+
+  function stopAutoplay() {
+    if (autoplayTimer !== null) {
+      clearInterval(autoplayTimer);
+      autoplayTimer = null;
+    }
+  }
+
+  function startAutoplay() {
+    stopAutoplay();
+    if (reducedMotion || document.hidden || slides.length < 2) return;
+    autoplayTimer = setInterval(function () { showSlide(activeIndex + 1); }, 5500);
+  }
+
+  carousel.querySelectorAll("[data-slide]").forEach(function (control) {
+    control.addEventListener("click", function (event) {
+      event.preventDefault();
+      showSlide(activeIndex + (control.dataset.slide === "next" ? 1 : -1));
+      startAutoplay();
+    });
+  });
+  indicators.forEach(function (indicator, index) {
+    indicator.setAttribute("role", "button");
+    indicator.setAttribute("tabindex", "0");
+    indicator.addEventListener("click", function () {
+      showSlide(index);
+      startAutoplay();
+    });
+    indicator.addEventListener("keydown", function (event) {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        showSlide(index);
+        startAutoplay();
+      }
+    });
+  });
+
+  showSlide(activeIndex);
+  carousel.addEventListener("mouseenter", stopAutoplay);
+  carousel.addEventListener("mouseleave", startAutoplay);
+  carousel.addEventListener("focusin", stopAutoplay);
+  carousel.addEventListener("focusout", function (event) {
+    if (!carousel.contains(event.relatedTarget)) startAutoplay();
+  });
+  document.addEventListener("visibilitychange", function () {
+    if (document.hidden) stopAutoplay();
+    else startAutoplay();
+  });
+  window.addEventListener("pagehide", stopAutoplay);
+
   let startX = 0;
   let startY = 0;
   carousel.addEventListener("touchstart", function (event) {
@@ -989,19 +1004,20 @@ function setupCarouselSwipe() {
     const deltaX = touch.clientX - startX;
     const deltaY = touch.clientY - startY;
     if (Math.abs(deltaX) < 48 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
-    const direction = deltaX < 0 ? "next" : "prev";
-    if (window.jQuery && window.jQuery.fn.carousel) {
-      window.jQuery(carousel).carousel(direction);
-    } else {
-      const control = carousel.querySelector('[data-slide="' + direction + '"]');
-      if (control) control.click();
-    }
+    showSlide(activeIndex + (deltaX < 0 ? 1 : -1));
+    startAutoplay();
   }, { passive: true });
 }
 
-renderProductGrid();
 setupSearchDropdown();
-initProductImages(document);
+const storefrontProductsReady = typeof loadProducts === "function"
+  ? loadProducts()
+  : Promise.resolve(false);
+storefrontProductsReady.then(function () {
+  renderProductGrid();
+  renderCart();
+  initProductImages(document);
+});
 new MutationObserver(function (records) {
   records.forEach(function (record) {
     record.addedNodes.forEach(function (node) {
@@ -1017,4 +1033,3 @@ setupCarouselSwipe();
 setupCartControls();
 updateBadge();
 renderCart();
-renderOrders();

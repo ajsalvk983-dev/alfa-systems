@@ -73,6 +73,17 @@
       <div class="footer-col"><h2>Location</h2><address>Palikkunnu, P.O. Pady,<br />Kodaly, Thrissur, Kerala</address></div>
     </div><div class="footer-bottom"><span>© ALFA SYSTEMS</span><span>Delivery charges are confirmed based on product and location.</span></div></div></footer>
     <script src="products.js"></script><script src="api.js"></script><script src="auth.js"></script>
-    <script>loadProducts().then(function () { var core = document.createElement("script"); core.src = "alfa.js"; core.onload = function () { var catalog = document.createElement("script"); catalog.src = "catalog.js"; document.body.appendChild(catalog); }; document.body.appendChild(core); });</script>
+    <script>
+      var core = document.createElement("script");
+      core.src = "alfa.js";
+      core.onload = function () {
+        loadProducts().then(function () {
+          var catalog = document.createElement("script");
+          catalog.src = "catalog.js";
+          document.body.appendChild(catalog);
+        });
+      };
+      document.body.appendChild(core);
+    </script>
   </body>
 </html>
