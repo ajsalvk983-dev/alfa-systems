@@ -251,8 +251,8 @@
   width: 104px;
   min-height: 104px;
   place-items: center;
-  padding: 13px;
-  color: #281d15;
+  padding: 1px;
+  color: #0f0f0e;
   background: var(--accent);
   border: 1px solid rgba(255,255,255,.45);
   border-radius: 50%;
@@ -262,6 +262,7 @@
   line-height: 1.2;
   text-align: center;
   transform: rotate(8deg);
+  font-family: 'Courier New', Courier, monospace;
 }
 
 .slide-callouts {
