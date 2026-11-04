@@ -279,7 +279,9 @@ input:focus, textarea:focus, select:focus, button:focus-visible, a:focus-visible
 .order-detail-meta strong { color: var(--ink); font-size: 12px; }
 .order-modal-body > h3 { margin: 20px 0 8px; font-size: 13px; }
 .order-detail-items { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
-.order-detail-items li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; color: #4b586a; border-bottom: 1px solid #eff1f4; font-size: 12px; }
+.order-detail-items li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; color: #4b586a; border-bottom: 1px solid #eff1f4; font-size: 12px; }
+.order-history-image { width: 42px; height: 42px; flex: 0 0 42px; object-fit: contain; background: #fff; border: 1px solid #eff1f4; border-radius: 6px; }
+.order-history-name { min-width: 0; flex: 1; }
 .order-detail-items li strong { color: var(--ink); white-space: nowrap; }
 .order-status-form { padding-top: 19px; }
 .order-status-form select { width: 100%; }

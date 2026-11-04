@@ -88,10 +88,18 @@ function renderDatabaseOrder(order) {
   const items = myOrderElement("div", null, "database-order-items");
   (Array.isArray(order.items) ? order.items : []).forEach(function (item) {
     const row = myOrderElement("div", null, "database-order-item");
-    row.append(
-      myOrderElement("span", item.name || "Product"),
-      myOrderElement("strong", "× " + item.qty)
-    );
+    if (item.image) {
+      const image = myOrderElement("span", null, "order-item-image");
+      const img = myOrderElement("img");
+      img.src = item.image;
+      img.alt = "";
+      img.loading = "lazy";
+      image.appendChild(img);
+      row.appendChild(image);
+    }
+    const name = myOrderElement("span", item.name || "Product");
+    name.className = "database-order-item-name";
+    row.append(name, myOrderElement("strong", "× " + item.qty));
     items.appendChild(row);
   });
   card.appendChild(items);

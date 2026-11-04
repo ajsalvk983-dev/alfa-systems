@@ -624,7 +624,12 @@ function setupSearchDropdown() {
   const previousBodyOverflow = document.body.style.overflow;
 
   function setSearchOpen(open) {
-    navbar.classList.toggle("search-open", open);
+    if (open) {
+      navbar.classList.add("search-open");
+    } else {
+      navbar.classList.remove("search-open");
+      input.blur();
+    }
     panel.hidden = !open || !input.value.trim();
     document.body.style.overflow = open ? "hidden" : previousBodyOverflow;
   }
@@ -639,20 +644,15 @@ function setupSearchDropdown() {
     const viewportLeft = viewport ? viewport.offsetLeft : 0;
     const viewportWidth = viewport ? viewport.width : window.innerWidth;
     const viewportHeight = viewport ? viewport.height : window.innerHeight;
+    const viewportBottom = viewportTop + viewportHeight;
     const width = mobile ? Math.max(0, viewportWidth - 16) : Math.min(viewportWidth - 16, Math.max(bounds.width, 360));
     const left = mobile ? viewportLeft + 8 : Math.max(viewportLeft + 8, Math.min(bounds.left, viewportLeft + viewportWidth - width - 8));
-    const hostBounds = host.getBoundingClientRect();
-    const clearBounds = clear.getBoundingClientRect();
-    const icon = host.querySelector(".search-icon");
-    const iconBounds = icon ? icon.getBoundingClientRect() : bounds;
-    const anchor = mobile
-      ? Math.max(navBounds.bottom, hostBounds.bottom, bounds.bottom, clearBounds.bottom, iconBounds.bottom) + 8
-      : bounds.bottom + 8;
-    const top = Math.min(Math.max(anchor, viewportTop + 8), viewportTop + viewportHeight - 32);
+    const anchor = mobile ? navBounds.bottom + 8 : bounds.bottom + 8;
+    const top = Math.max(anchor, viewportTop + 8);
     panel.style.left = left + "px";
     panel.style.top = top + "px";
     panel.style.width = width + "px";
-    panel.style.maxHeight = Math.max(0, viewportTop + viewportHeight - top - 12) + "px";
+    panel.style.maxHeight = Math.max(0, viewportBottom - top - 12) + "px";
   }
 
   function goToResults(categoryValue) {
@@ -828,12 +828,10 @@ function setupSearchDropdown() {
     applyFilters();
     input.focus();
   });
-  document.addEventListener("click", function (e) {
-    if (!navbar.contains(e.target) && !panel.contains(e.target)) {
-      setSearchOpen(false);
-      input.blur();
-    }
-  });
+  function closeOnOutsidePointer(e) {
+    if (!navbar.contains(e.target) && !panel.contains(e.target)) setSearchOpen(false);
+  }
+  document.addEventListener(window.PointerEvent ? "pointerdown" : "click", closeOnOutsidePointer);
   function closeForNavigation() {
     setSearchOpen(false);
   }
@@ -841,6 +839,7 @@ function setupSearchDropdown() {
   window.addEventListener("orientationchange", positionPanel);
   window.addEventListener("scroll", positionPanel, true);
   window.addEventListener("pagehide", closeForNavigation);
+  window.addEventListener("beforeunload", closeForNavigation);
   window.addEventListener("popstate", closeForNavigation);
   window.addEventListener("hashchange", closeForNavigation);
   if (window.visualViewport) {

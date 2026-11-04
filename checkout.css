@@ -87,7 +87,9 @@
 .database-order-status.status-delivered { color: #17774f; background: #e6f6ef; }
 .database-order-status.status-cancelled { color: #a53d3d; background: #fff0f0; }
 .database-order-items { display: grid; gap: 8px; padding: 12px 0; }
-.database-order-item { display: flex; justify-content: space-between; gap: 12px; color: #536174; font-size: .82rem; }
+.database-order-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: #536174; font-size: .82rem; }
+.database-order-item .order-item-image { width: 44px; height: 44px; border: 1px solid #edf0f3; }
+.database-order-item-name { min-width: 0; flex: 1; }
 .database-order-total { display: flex; justify-content: space-between; padding-top: 11px; color: #263345; border-top: 1px solid #edf0f3; font-weight: 800; }
 .database-order-meta { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 8px; color: #6c7889; font-size: .75rem; }
 .checkout-retry { padding: 6px 10px; margin-left: 8px; color: #245ca6; background: #eaf2fc; border: 0; border-radius: 6px; font-size: .75rem; font-weight: 700; }

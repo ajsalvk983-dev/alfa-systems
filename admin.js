@@ -313,6 +313,7 @@ function renderProducts() {
     const imagesTd = el("td", String(urls.length));
     imagesTd.dataset.label = "Images";
     const orderCount = Number(p.orderCount || (p.isOrdered ? 1 : 0));
+    const activeOrderCount = Number(p.activeOrderCount || 0);
     const ordersTd = el("td", String(orderCount));
     ordersTd.dataset.label = "Orders";
     const statusTd = el("td");
@@ -331,17 +332,18 @@ function renderProducts() {
     });
     const remove = el("button", "Delete", "table-action delete");
     remove.type = "button";
-    remove.disabled = orderCount > 0;
-    if (orderCount > 0) {
-      remove.title = "Used in " + orderCount + " orders, archive it instead";
-      remove.setAttribute("aria-label", "Delete disabled. Used in " + orderCount + " orders, archive it instead");
+    remove.disabled = activeOrderCount > 0;
+    if (activeOrderCount > 0) {
+      const deleteHelp = activeOrderCount + " active orders - finish or cancel them first (or use Hide)";
+      remove.title = deleteHelp;
+      remove.setAttribute("aria-label", "Delete disabled. " + deleteHelp);
     } else {
       remove.addEventListener("click", function () { deleteProduct(p, remove); });
     }
     actions.append(edit, visibility, remove);
     actionsTd.appendChild(actions);
-    if (orderCount > 0) {
-      actionsTd.appendChild(el("small", "Used in " + orderCount + " orders, archive it instead", "delete-help"));
+    if (activeOrderCount > 0) {
+      actionsTd.appendChild(el("small", activeOrderCount + " active orders - finish or cancel them first (or use Hide)", "delete-help"));
     }
     row.append(productTd, categoryTd, priceTd, imagesTd, ordersTd, statusTd, actionsTd);
     body.appendChild(row);
@@ -784,7 +786,16 @@ function openOrderDetails(order) {
   list.replaceChildren();
   (Array.isArray(order.items) ? order.items : []).forEach(function (item) {
     const row = el("li");
-    row.append(el("span", item.name || "Product"), el("strong", "× " + item.qty));
+    if (item.image) {
+      const image = el("img", null, "order-history-image");
+      image.src = item.image;
+      image.alt = "";
+      image.loading = "lazy";
+      row.appendChild(image);
+    }
+    const name = el("span", item.name || "Product");
+    name.className = "order-history-name";
+    row.append(name, el("strong", "× " + item.qty));
     list.appendChild(row);
   });
   if (!list.children.length) list.appendChild(el("li", "No product details available."));
@@ -1087,15 +1098,15 @@ async function saveProduct(event) {
 }
 
 async function deleteProduct(product, button) {
-  if (!await confirmAdminAction('Permanently delete "' + (product.name || "this product") + '" from the catalogue? This removes it from the store and cannot be undone. It is not linked to any orders.', "Delete permanently")) return;
+  if (!await confirmAdminAction('Permanently delete "' + (product.name || "this product") + '" from the catalogue? This cannot be undone. Finished orders will keep the product name and image in their history.', "Delete permanently")) return;
   const previousText = button.textContent;
   button.disabled = true;
   button.textContent = "Deleting…";
   try {
     const res = await adminFetch("/api/admin/products/" + encodeURIComponent(product.id), { method: "DELETE" });
     if (!res.ok) throw new Error(await apiErrorMessage(res, "delete this product"));
-    const result = await res.json();
-    if (await loadProducts()) setGlobalMessage(result.archived ? "Product archived because it appears in an order." : "Product deleted.");
+    await res.json();
+    if (await loadProducts()) setGlobalMessage("Product deleted.");
   } catch (err) {
     setGlobalMessage(err.message || "Could not delete product.", true);
   } finally {
