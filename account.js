@@ -104,6 +104,7 @@
       const response = await fetch(API_URL + "/api/auth/" + action, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(payload),
       });
       const data = await responseData(response, "Could not sign in.");
@@ -269,7 +270,6 @@
         }),
       });
       const data = await responseData(response, "Could not update your password.");
-      saveAuthSession({ token: data.token, user: currentAccountUser });
       passwordForm.reset();
       showMessage("Your password has been changed. Other devices have been signed out.");
     } catch (error) {
@@ -284,7 +284,7 @@
     try {
       const response = await authFetch("/api/auth/logout-all", { method: "POST" });
       await responseData(response, "Could not sign out other devices.");
-      logout();
+      await logout();
       showLogin();
       showMessage("You have been signed out on all devices.");
     } catch (error) {
@@ -302,7 +302,7 @@
         body: JSON.stringify({ password: form.elements.password.value }),
       });
       await responseData(response, "Could not delete your account.");
-      logout();
+      await logout();
       form.reset();
       showLogin();
       showMessage("Your account has been deleted and personal order details anonymised.");

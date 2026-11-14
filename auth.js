@@ -1,11 +1,6 @@
-const AUTH_TOKEN_KEY = "alfaAuthToken";
 let currentUser = null;
 let currentUserRequest = null;
 let authExpiredMessage = "";
-
-function getAuthToken() {
-  return localStorage.getItem(AUTH_TOKEN_KEY) || "";
-}
 
 function updateAccountIcons(user) {
   document.querySelectorAll(".account-link").forEach(function (link) {
@@ -35,15 +30,13 @@ function setCurrentUser(user) {
 async function authFetch(path, options) {
   const request = Object.assign({}, options || {});
   const headers = new Headers(request.headers || {});
-  const token = getAuthToken();
-  if (token && !headers.has("Authorization")) headers.set("Authorization", "Bearer " + token);
   if (request.body && !(request.body instanceof FormData) && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
   request.headers = headers;
+  request.credentials = "include";
   const response = await fetch(API_URL + path, request);
-  if (response.status === 401 && token) {
-    localStorage.removeItem(AUTH_TOKEN_KEY);
+  if (response.status === 401) {
     setCurrentUser(null);
     authExpiredMessage = "Your session expired. Please sign in again.";
     window.dispatchEvent(new CustomEvent("alfa-auth-expired", {
@@ -60,10 +53,6 @@ function getAuthExpiredMessage() {
 }
 
 async function getUser(forceRefresh) {
-  if (!getAuthToken()) {
-    setCurrentUser(null);
-    return null;
-  }
   if (!forceRefresh && currentUser) return currentUser;
   if (!forceRefresh && currentUserRequest) return currentUserRequest;
   currentUserRequest = (async function () {
@@ -84,16 +73,18 @@ async function getUser(forceRefresh) {
 }
 
 function saveAuthSession(data) {
-  if (!data || typeof data.token !== "string" || !data.token || !data.user) {
+  if (!data || !data.user) {
     throw new Error("The account API returned an incomplete sign-in response.");
   }
-  localStorage.setItem(AUTH_TOKEN_KEY, data.token);
   setCurrentUser(data.user);
 }
 
-function logout() {
-  localStorage.removeItem(AUTH_TOKEN_KEY);
-  setCurrentUser(null);
+async function logout() {
+  try {
+    await authFetch("/api/auth/logout", { method: "POST" });
+  } finally {
+    setCurrentUser(null);
+  }
 }
 
 updateAccountIcons(null);

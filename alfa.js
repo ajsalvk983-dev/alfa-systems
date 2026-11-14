@@ -207,7 +207,7 @@ async function toggleWishlist(button) {
   const id = button.dataset.wishlistId;
   if (!id) return;
   try {
-    const user = currentUser || (getAuthToken() ? await getUser() : null);
+    const user = currentUser || await getUser();
     if (user) {
       await syncWishlistForUser(user);
       const saved = wishlistProductIds.has(String(id));
