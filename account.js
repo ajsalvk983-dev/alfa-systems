@@ -100,7 +100,20 @@
     setBusy(form, true, loadingText);
     showMessage("Please wait…");
     try {
-      const payload = Object.fromEntries(new FormData(form).entries());
+      // Read the named controls directly instead of relying on a generic
+      // FormData conversion. This guarantees the backend receives the exact
+      // signup/login field names expected by /api/auth.
+      const payload = {
+        email: String(form.elements.email.value || "").trim().toLowerCase(),
+        password: String(form.elements.password.value || ""),
+      };
+      if (action === "signup") {
+        payload.name = String(form.elements.name.value || "").trim();
+        payload.phone = String(form.elements.phone.value || "").trim();
+        if (!payload.name) {
+          throw new Error("Please enter your full name.");
+        }
+      }
       const response = await fetch(API_URL + "/api/auth/" + action, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
