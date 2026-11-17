@@ -2,6 +2,7 @@ const CHECKOUT_ORDERS_KEY = "alfaCheckoutOrderAccess";
 let checkoutCart = [];
 let checkoutProducts = new Map();
 let checkoutDeliveryCharges = null;
+let checkoutRazorpayEnabled = false;
 let checkoutSubmitting = false;
 
 function checkoutElement(tag, text, className) {
@@ -274,9 +275,14 @@ function updateOnlinePaymentAvailability() {
   const pricesKnown = checkoutCart.length > 0 && checkoutCart.every(function (item) {
     return item.product && getNumericPrice(item.product.price) !== null;
   });
-  online.disabled = !storePickup || !pricesKnown || checkoutSubmitting;
+  online.disabled = !checkoutRazorpayEnabled || !storePickup || !pricesKnown || checkoutSubmitting;
   const label = online.closest(".checkout-choice");
-  if (label) label.classList.toggle("is-disabled", online.disabled);
+  if (label) {
+    label.classList.toggle("is-disabled", online.disabled);
+    const note = label.querySelector("small");
+    if (note && !checkoutRazorpayEnabled) note.textContent = "Online payments will appear after ALFA SYSTEMS payment setup is completed.";
+    else if (note) note.textContent = "UPI, cards and other Razorpay methods. Available for Store Pickup only.";
+  }
   if (online.checked && online.disabled) cod.checked = true;
 }
 
@@ -519,6 +525,7 @@ async function initializeCheckout() {
     }
     products.splice(0, products.length, ...data);
     checkoutDeliveryCharges = deliveryCharges;
+    checkoutRazorpayEnabled = Boolean(options.onlinePaymentEnabled);
     checkoutProducts = new Map(data.map(function (product) { return [String(product.id), product]; }));
     resolveCheckoutCart();
     updateBadge();
