@@ -99,8 +99,9 @@
               <div class="checkout-section-heading"><span>04</span><div><h2>Payment method</h2><p>Select a preferred payment method. This does not process a payment.</p></div></div>
               <div class="checkout-choice-grid payment-choices">
                 <label class="checkout-choice"><input type="radio" name="paymentMethod" value="Cash on Delivery" checked required /><span class="choice-icon"><i class="fa-solid fa-money-bill-wave" aria-hidden="true"></i></span><span><strong>Pay after confirmation / COD</strong><small>No payment is collected when you place the order.</small></span></label>
+                <label class="checkout-choice"><input type="radio" name="paymentMethod" value="Razorpay" required /><span class="choice-icon"><i class="fa-solid fa-credit-card" aria-hidden="true"></i></span><span><strong>Pay online securely</strong><small>UPI, cards and other methods supported by Razorpay. Currently Store Pickup only.</small></span></label>
               </div>
-              <p class="payment-disclaimer">Our team will review your order and confirm product availability, delivery charges and the final amount before payment.</p>
+              <p class="payment-disclaimer">Online payment is available for Store Pickup when product prices are confirmed. Home Delivery remains Cash on Delivery until the delivery charge is confirmed.</p>
             </section>
           </div>
 
@@ -157,6 +158,7 @@
     <script src="api.js"></script>
     <script src="auth.js"></script>
     <script src="alfa.js"></script>
-    <script src="checkout.js"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script src="checkout.js?v=razorpay-20261117"></script>
   </body>
 </html>
