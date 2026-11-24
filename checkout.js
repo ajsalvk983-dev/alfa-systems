@@ -2,6 +2,7 @@ const CHECKOUT_ORDERS_KEY = "alfaCheckoutOrderAccess";
 let checkoutCart = [];
 let checkoutProducts = new Map();
 let checkoutDeliveryCharges = null;
+let checkoutRazorpayEnabled = false;
 let checkoutSubmitting = false;
 
 function checkoutElement(tag, text, className) {
@@ -130,6 +131,7 @@ function renderCheckoutSummary() {
   }
   const canCalculate = !hasUnavailableProduct;
   const deliveryMethod = selectedCheckoutValue("deliveryMethod");
+  updateOnlinePaymentAvailability();
   const deliveryCharge = checkoutDeliveryCharges && checkoutDeliveryCharges[deliveryMethod];
   const hasDeliveryCharge = Number.isFinite(deliveryCharge) && deliveryCharge >= 0;
   const deliveryChargeConfirmed = deliveryMethod === "Store Pickup";
@@ -264,6 +266,109 @@ function showOrderConfirmation(order) {
   document.getElementById("orderConfirmation").hidden = false;
 }
 
+
+function updateOnlinePaymentAvailability() {
+  const online = document.querySelector('input[name="paymentMethod"][value="Razorpay"]');
+  const cod = document.querySelector('input[name="paymentMethod"][value="Cash on Delivery"]');
+  if (!online || !cod) return;
+  const storePickup = selectedCheckoutValue("deliveryMethod") === "Store Pickup";
+  const pricesKnown = checkoutCart.length > 0 && checkoutCart.every(function (item) {
+    return item.product && getNumericPrice(item.product.price) !== null;
+  });
+  online.disabled = !checkoutRazorpayEnabled || !storePickup || !pricesKnown || checkoutSubmitting;
+  const label = online.closest(".checkout-choice");
+  if (label) {
+    label.classList.toggle("is-disabled", online.disabled);
+    const note = label.querySelector("small");
+    if (note && !checkoutRazorpayEnabled) note.textContent = "Online payments will appear after ALFA SYSTEMS payment setup is completed.";
+    else if (note) note.textContent = "UPI, cards and other Razorpay methods. Available for Store Pickup only.";
+  }
+  if (online.checked && online.disabled) cod.checked = true;
+}
+
+function saveSuccessfulPaymentOrder(order) {
+  const saved = checkoutStoredOrders();
+  saved.unshift({ orderId: order.orderId, accessToken: order.accessToken });
+  localStorage.setItem(CHECKOUT_ORDERS_KEY, JSON.stringify(saved.slice(0, 100)));
+  save(CART_KEY, []);
+  updateBadge();
+}
+
+async function startRazorpayPayment(request) {
+  if (typeof window.Razorpay !== "function") {
+    throw new Error("Razorpay Checkout could not load. Refresh the page and try again.");
+  }
+  const createResponse = await authFetch("/api/payments/razorpay/create-order", {
+    method: "POST",
+    body: JSON.stringify(request),
+  });
+  const created = await createResponse.json().catch(function () { return {}; });
+  if (!createResponse.ok) throw new Error(created.error || "Could not start online payment.");
+  if (!created.orderId || !created.accessToken || !created.razorpay ||
+      !created.razorpay.orderId || !created.razorpay.keyId || !created.razorpay.amount) {
+    throw new Error("The payment service returned an incomplete order.");
+  }
+
+  const options = {
+    key: created.razorpay.keyId,
+    amount: created.razorpay.amount,
+    currency: created.razorpay.currency || "INR",
+    name: "ALFA SYSTEMS",
+    description: "Order #" + created.orderId,
+    order_id: created.razorpay.orderId,
+    prefill: {
+      name: created.customer && created.customer.name || "",
+      email: created.customer && created.customer.email || "",
+      contact: created.customer && created.customer.phone || "",
+    },
+    theme: { color: "#d99a55" },
+    modal: {
+      ondismiss: function () {
+        setCheckoutMessage("Payment window closed. Your order is not marked as paid. You can try again or contact ALFA SYSTEMS with order #" + created.orderId + ".", true);
+      },
+    },
+    handler: async function (gatewayResponse) {
+      setCheckoutMessage("Payment received by checkout. Verifying securely…", false);
+      try {
+        const verifyResponse = await fetch(API_URL + "/api/payments/razorpay/verify", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-order-access-token": created.accessToken,
+          },
+          body: JSON.stringify({
+            orderId: created.orderId,
+            razorpay_payment_id: gatewayResponse.razorpay_payment_id,
+            razorpay_order_id: gatewayResponse.razorpay_order_id,
+            razorpay_signature: gatewayResponse.razorpay_signature,
+          }),
+        });
+        const verification = await verifyResponse.json().catch(function () { return {}; });
+        if (!verifyResponse.ok || verification.verified !== true) {
+          throw new Error(verification.message || verification.error || "Payment is not yet confirmed as captured. Do not pay again until the order status is checked.");
+        }
+        const completed = Object.assign({}, created, { paymentStatus: "Paid" });
+        saveSuccessfulPaymentOrder(completed);
+        showOrderConfirmation(completed);
+        setCheckoutMessage("", false);
+      } catch (error) {
+        setCheckoutMessage(
+          (error.message || "Payment verification is pending.") +
+          " Save your order number #" + created.orderId + " and contact ALFA SYSTEMS before attempting another payment.",
+          true
+        );
+      }
+    },
+  };
+
+  const checkout = new window.Razorpay(options);
+  checkout.on("payment.failed", function (event) {
+    const description = event && event.error && event.error.description;
+    setCheckoutMessage("Payment failed" + (description ? ": " + description : ".") + " You can retry or choose Cash on Delivery.", true);
+  });
+  checkout.open();
+}
+
 async function submitCheckout(event) {
   event.preventDefault();
   if (checkoutSubmitting || !validateCheckoutForm()) return;
@@ -298,6 +403,10 @@ async function submitCheckout(event) {
     },
   };
   try {
+    if (request.checkout.paymentMethod === "Razorpay") {
+      await startRazorpayPayment(request);
+      return;
+    }
     const response = await authFetch("/api/orders", {
       method: "POST",
       body: JSON.stringify(request),
@@ -416,6 +525,7 @@ async function initializeCheckout() {
     }
     products.splice(0, products.length, ...data);
     checkoutDeliveryCharges = deliveryCharges;
+    checkoutRazorpayEnabled = Boolean(options.onlinePaymentEnabled);
     checkoutProducts = new Map(data.map(function (product) { return [String(product.id), product]; }));
     resolveCheckoutCart();
     updateBadge();

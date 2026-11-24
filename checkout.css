@@ -23,6 +23,8 @@
 .checkout-choice { position: relative; display: flex; min-height: 73px; align-items: center; gap: 11px; padding: 12px; color: #465366; background: #fff; border: 1px solid #dfe5ec; border-radius: 9px; cursor: pointer; transition: background .15s ease, border-color .15s ease; }
 .checkout-choice:has(input:checked) { background: #f2f8f5; border-color: #43856a; box-shadow: 0 0 0 1px #43856a inset; }
 .checkout-choice input { width: 16px; height: 16px; flex: 0 0 auto; accent-color: #176345; }
+.checkout-choice.is-disabled { opacity: .48; cursor: not-allowed; background: #f4f5f6; }
+.checkout-choice input:disabled { cursor: not-allowed; }
 .choice-icon { display: grid; width: 34px; height: 34px; flex: 0 0 auto; place-items: center; color: #176345; background: #e8f5ef; border-radius: 8px; }
 .checkout-choice strong, .checkout-choice small { display: block; }
 .checkout-choice strong { color: #202b3c; font-size: .8rem; }

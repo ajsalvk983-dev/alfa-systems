@@ -27,6 +27,11 @@ function setCurrentUser(user) {
   window.dispatchEvent(new CustomEvent("alfa-auth-change", { detail: currentUser }));
 }
 
+/*
+ * Authentication uses the backend's HttpOnly cookie. Never copy the session
+ * token into localStorage or JavaScript. All private requests must include
+ * credentials so the browser can attach the cookie.
+ */
 async function authFetch(path, options) {
   const request = Object.assign({}, options || {});
   const headers = new Headers(request.headers || {});
@@ -35,6 +40,7 @@ async function authFetch(path, options) {
   }
   request.headers = headers;
   request.credentials = "include";
+
   const response = await fetch(API_URL + path, request);
   if (response.status === 401) {
     setCurrentUser(null);
@@ -55,6 +61,7 @@ function getAuthExpiredMessage() {
 async function getUser(forceRefresh) {
   if (!forceRefresh && currentUser) return currentUser;
   if (!forceRefresh && currentUserRequest) return currentUserRequest;
+
   currentUserRequest = (async function () {
     const response = await authFetch("/api/auth/me");
     if (response.status === 401) return null;
@@ -69,7 +76,12 @@ async function getUser(forceRefresh) {
     setCurrentUser(data.user);
     return currentUser;
   })();
-  return currentUserRequest;
+
+  try {
+    return await currentUserRequest;
+  } finally {
+    currentUserRequest = null;
+  }
 }
 
 function saveAuthSession(data) {
