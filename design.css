@@ -1442,6 +1442,95 @@ body {
   color: var(--paper-muted);
 }
 
+.content-page .content-hero,
+.content-panel {
+  font-family: var(--font-ui), Arial, sans-serif;
+}
+
+.content-page .content-hero h1 {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+  font-weight: 700;
+  font-optical-sizing: auto;
+  font-variation-settings: "SOFT" 50;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.content-page .content-hero .site-eyebrow {
+  font-family: var(--font-ui), Arial, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+.content-page .content-hero p {
+  font-size: 0.95rem;
+  line-height: 1.65;
+}
+
+.content-panel {
+  padding: clamp(28px, 4vw, 48px);
+}
+
+.content-panel h2 {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: clamp(1.45rem, 2.5vw, 1.75rem);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+  margin: 0 0 16px;
+}
+
+.content-panel p {
+  font-size: 0.92rem;
+  line-height: 1.6;
+  margin: 0 0 14px;
+}
+
+.about-points {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(14px, 2vw, 20px);
+  margin-top: 24px;
+}
+
+.about-point {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: clamp(16px, 2vw, 22px);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-card);
+  text-align: center;
+}
+
+.about-point strong {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: clamp(1.25rem, 2.5vw, 1.5rem);
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.about-point span {
+  font-family: var(--font-ui), Arial, sans-serif;
+  font-size: 0.8rem;
+  color: var(--ink-muted);
+}
+
+.hero-actions {
+  display: flex;
+  gap: clamp(12px, 2vw, 16px);
+  margin-top: clamp(18px, 2vw, 24px);
+  flex-wrap: wrap;
+}
+
+.hero-actions .site-button-primary,
+.hero-actions .site-button-secondary {
+  flex: 0 0 auto;
+}
+
 .content-page .site-button-secondary {
   color: #32251a;
   background: var(--paper);
