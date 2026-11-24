@@ -228,7 +228,7 @@
 .card-price { color: #161111; font-size: 0.84rem; font-weight: 800; line-height: 1.3; }
 .card-price-ask { font-size: 0.75rem; }
 .card-old-price { color: #888e8a; font-size: 0.7rem; font-weight: 400; }
-.card-off-text { color: var(--shop-green, #f6f9f8); font-size: 0.68rem; font-weight: 700; }
+.card-off-text { color: #f4d576; font-size: 0.68rem; font-weight: 700; }
 .card-sub {
   display: -webkit-box;
   overflow: hidden;
