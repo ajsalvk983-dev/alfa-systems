@@ -8,8 +8,8 @@ body {
 }
 
 :root {
-  --carousel-primary: #071433;
-  --carousel-gradient: linear-gradient(160deg, #040a1c 0%, #071433 58%, #12284f 100%);
+  --carousel-primary: #10306b;
+  --carousel-gradient: linear-gradient(160deg, #040a1c 0%, #10306b 58%, #12284f 100%);
   --shop-green: #0f3d2e;
   --shop-green-hover: #0b3024;
   --shop-peach: #fdf0e3;

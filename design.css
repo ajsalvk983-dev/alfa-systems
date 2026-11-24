@@ -1510,13 +1510,13 @@ body {
   font-family: var(--font-display), Georgia, serif;
   font-size: clamp(1.25rem, 2.5vw, 1.5rem);
   font-weight: 700;
-  color: var(--ink);
+  color: #28211b !important;
 }
 
 .about-point span {
   font-family: var(--font-ui), Arial, sans-serif;
   font-size: 0.8rem;
-  color: var(--ink-muted);
+  color: #62574c !important;
 }
 
 .hero-actions {
